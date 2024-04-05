@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { signIn } from "next-auth/react";
-
+import "./globals.css"
 export default function Home() {
   const handleLogin = async (e: any) => {
     e.preventDefault();

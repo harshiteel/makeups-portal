@@ -1,9 +1,10 @@
-// pages/dashboard.tsx
-import { useEffect } from "react";
+import React from "react";
+import { useEffect, useState } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/router";
+import Navbar from "@/components/navbar";
 
-const DashboardPage = () => {
+const Dashboard = () => {
   const { data: session, status } = useSession();
   const router = useRouter();
 
@@ -13,21 +14,12 @@ const DashboardPage = () => {
     }
   }, [status, router]);
 
-  const handleSignOut = async () => {
-    await signOut({ callbackUrl: "/" });
-  };
-
-  if (status === "loading") {
-    return <div>Loading...</div>;
-  }
-
   return (
     <div>
-      <h1>Welcome to the Dashboard!</h1>
-      <p>This is the dashboard content.</p>
-      <button onClick={handleSignOut}>Sign Out</button>
+      <Navbar />
+      Dashboard
     </div>
   );
 };
 
-export default DashboardPage;
+export default Dashboard;
