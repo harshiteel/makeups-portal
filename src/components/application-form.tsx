@@ -1,54 +1,80 @@
+"use client";
+
 import { useState } from "react";
 import { Textarea } from "@nextui-org/react";
+import { useDropzone } from "react-dropzone";
 
 const ApplicationForm = ({ user }: { user: string }) => {
   const [idNumber, setIdNumber] = useState("");
   const [courseCode, setCourseCode] = useState("");
   const [evalComponent, setEvalComponent] = useState("");
   const [reason, setReason] = useState("");
-  const [images, setImages] = useState<File[]>([]);
+  const [attachments, setAttachments] = useState<File[]>([]);
   const [errorMsg, setErrorMsg] = useState("");
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []) as File[];
+  const handleImageDrop = (acceptedFiles: File[]) => {
+    const allowedTypes = [
+      "image/jpeg",
+      "image/jpg",
+      "image/png",
+      "application/pdf",
+    ];
+    const oversizedFiles: File[] = [];
+    const validFiles: File[] = [];
 
-    // Check if file size exceeds 5MB
-    const maxSize = parseInt(process.env.MAX_FILE_SIZE || "0", 10);
-    const oversizedFiles = files.filter((file) => file.size > maxSize);
-
-    if (oversizedFiles.length > 0) {
-      setErrorMsg("Please compress images exceeding 5MB");
-      return;
-    }
-
-    setErrorMsg("");
-
-    const imagePromises = files.map((file) => {
-      return new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => {
-          const base64Image = reader.result as string;
-          resolve(base64Image);
-        };
-        reader.onerror = (error) => reject(error);
-      });
+    acceptedFiles.forEach((file) => {
+      if (file.size > 5 * 1024 * 1024) {
+        oversizedFiles.push(file);
+      } else if (allowedTypes.includes(file.type)) {
+        validFiles.push(file);
+      }
     });
 
-    Promise.all(imagePromises)
-      .then((base64Images) => {
-        setImages((prevImages) => [...prevImages, ...(base64Images as any)]);
-      })
-      .catch((error) => {
-        console.error("Error converting images to base64:", error);
-      });
+    if (oversizedFiles.length > 0) {
+      setErrorMsg("Please compress attachments exceeding 5MB and reupload.");
+    }
+
+    if (validFiles.length > 0) {
+      setAttachments((prevAttachments) => [...prevAttachments, ...validFiles]);
+    }
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const { getRootProps, getInputProps } = useDropzone({
+    maxSize: 5 * 1024 * 1024, // 5MB in bytes
+    onDrop: (acceptedFiles) => handleImageDrop(acceptedFiles),
+  });
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log("u", user);
-    console.log({ idNumber, courseCode, reason, images });
+
+    var formData = new FormData();
+    try {
+      formData.append("name", user);
+      formData.append("idNumber", idNumber);
+      formData.append("courseCode", courseCode);
+      formData.append("evalComponent", evalComponent);
+      formData.append("reason", reason);
+      attachments.forEach((file, index) => {
+        formData.append(`attachment${index}`, file);
+      });
+
+      const response = await fetch('/api/submit-makeup-request', {
+        method: 'POST',
+        body: formData,
+      });
+  
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      } else {
+        const data = await response.json();
+        console.log(data);
+      }
+
+    } catch (error) {
+      console.log(error);
+    }
   };
+
 
   return (
     <div className="min-h-screen bg-gray-100 py-6 px-4 sm:px-6 lg:px-8 flex items-center justify-center">
@@ -74,7 +100,7 @@ const ApplicationForm = ({ user }: { user: string }) => {
                 ID Number:
               </label>
               <input
-                required
+                // required
                 type="text"
                 id="idNumber"
                 value={idNumber}
@@ -88,7 +114,7 @@ const ApplicationForm = ({ user }: { user: string }) => {
                 Course Code:
               </label>
               <input
-                required
+                // required
                 type="text"
                 id="courseCode"
                 value={courseCode}
@@ -102,7 +128,7 @@ const ApplicationForm = ({ user }: { user: string }) => {
                 Evaluative Component:
               </label>
               <input
-                required
+                // required
                 type="text"
                 id="evalComponent"
                 value={evalComponent}
@@ -124,22 +150,19 @@ const ApplicationForm = ({ user }: { user: string }) => {
               />
             </div>
 
-            <div className="flex flex-col items-center space-y-8 py-4 md:space-y-0 md:space-x-4 mb-4">
-              <label htmlFor="images" className="font-semibold">
-                Image Uploads (max 5MB each)
-              </label>
-              <p className=" text-red-500">
-                Attach your prescriptions, etc here.{" "}
-                <i className=" text-small">(PDF, PNG, JPG, JPEG)</i>
+            <div
+              {...getRootProps()}
+              className="flex flex-col items-center space-y-8 py-4 md:space-y-0 md:space-x-4 mb-4 border border-dashed border-gray-300 rounded-md"
+            >
+              <input {...getInputProps()} />
+              <p className="font-semibold">
+                Attach your prescriptions, etc here (max 5MB each){" "}
               </p>
-              <input
-                type="file"
-                id="images"
-                accept=".jpg, .jpeg, .png, .pdf"
-                multiple
-                onChange={handleImageUpload}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-400"
-              />
+              <p className=" text-red-500">
+                <i className=" text-small">
+                  (Allowed File Types: PDF, PNG, JPG, JPEG)
+                </i>
+              </p>
             </div>
 
             <button
