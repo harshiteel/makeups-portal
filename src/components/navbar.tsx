@@ -1,62 +1,146 @@
-import { useEffect, useState } from "react";
-import { useSession, signOut } from "next-auth/react";
+import React from "react";
+import {
+  Navbar as NextUINavbar,
+  NavbarBrand,
+  NavbarContent,
+  NavbarItem,
+  NavbarMenuToggle,
+  NavbarMenu,
+  NavbarMenuItem,
+  Link,
+  DropdownItem,
+  DropdownTrigger,
+  Dropdown,
+  DropdownMenu,
+  Avatar,
+} from "@nextui-org/react";
+import { signOut } from "next-auth/react";
 import TDLogo from "../../public/images/tdlogo-01.png";
-import Image from "next/image"
+import Image from "next/image";
 
-const Navbar: React.FC = () => {
-    const { data: session, status } = useSession();
+interface NavbarProps {
+  session: any;
+  setNavBarPage: (page: string) => void;
+  navBarPage: any;
+}
 
-    const [isModalOpen, setIsModalOpen] = useState(false);
+export default function Navbar({
+  session,
+  navBarPage,
+  setNavBarPage,
+}: NavbarProps) {
+  const logoutUser = async () => {
+    await signOut({ callbackUrl: "/" });
+  };
 
-    const handleModalToggle = () => {
-        setIsModalOpen(!isModalOpen);
-    };
+  const [isMenuOpen, setIsMenuOpen] = React.useState(false);
 
-    const signoutUser = async () =>{
-        await signOut({ callbackUrl: "/" });
-    }
+  const handleMenuItemClick = async (item: string) => {
+    if (window.location.pathname === "/account")
+      await window.location.replace("/dashboard");
+    setNavBarPage(item);
+  };
 
-    const handleMouseLeave = () => {
-        setIsModalOpen(false);
-    };
+  const menuItems = ["Dashboard", "Application Form"];
 
-    const navToAccountSettings = (e:any) => {
-        e.preventDefault();
-        window.location.href = "/account";
-    }
+  return (
+    <NextUINavbar onMenuOpenChange={setIsMenuOpen}>
+      <NavbarContent>
+        <NavbarMenuToggle
+          aria-label={isMenuOpen ? "Close menu" : "Open menu"}
+          className="sm:hidden"
+        />
 
-    return (
-        <nav className="flex items-center justify-between bg-gray-800 text-white p-4">
-            <div className="flex items-center">
-                <Image src={TDLogo} alt="TD" height={32}/>
-                <h1 className="ml-2 text-lg font-semibold">Makeups Portal</h1>
-            </div>
-            <div className="flex items-center relative">
-                <img
-                    src={session?.user?.image || ""}
-                    alt="User Profile"
-                    className="h-8 w-8 rounded-full cursor-pointer"
-                    onClick={handleModalToggle}
-                />
-                {isModalOpen && (
-                    <div className="absolute right-0 top-12 text-black mr-4 bg-white p-4 rounded shadow" onMouseLeave={handleMouseLeave}>
-                        <ul>
-                            <li>
-                                <button onClick={signoutUser} className="block rounded w-full text-sm text-left py-2 px-4 hover:bg-red-400" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                    Sign Out
-                                </button>
-                            </li>
-                            <li>
-                                <button onClick={navToAccountSettings} className="block rounded w-full text-sm text-left py-2 px-4 hover:bg-gray-200" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                    Account Settings
-                                </button>
-                            </li>
-                        </ul>
-                    </div>
-                )}
-            </div>
-        </nav>
-    );
-};
+        <NavbarBrand>
+          <Image src={TDLogo} alt="TD Logo" width={256} height={64} />
+        </NavbarBrand>
+        
+        <NavbarBrand>
+          <p className="font-bold text-inherit">Makeups Portal</p>
+        </NavbarBrand>
+      </NavbarContent>
 
-export default Navbar;
+      <NavbarContent className="hidden sm:flex gap-4" justify="center">
+        <NavbarItem className={navBarPage === "Dashboard" ? "isActive" : ""}>
+          <Link
+            style={{
+              color: navBarPage === "Dashboard" ? "rgb(200,0,200)" : "inherit",
+              fontWeight: navBarPage === "Dashboard" ? "bold" : "normal",
+            }}
+            onClick={() => handleMenuItemClick("Dashboard")}
+            className="cursor-pointer"
+          >
+            Dashboard
+          </Link>
+        </NavbarItem>
+        <NavbarItem
+          className={navBarPage === "Application Form" ? "isActive" : ""}
+        >
+          <Link
+            style={{
+              color: navBarPage === "Application Form" ? "blue" : "inherit",
+              fontWeight: navBarPage === "Application Form" ? "bold" : "normal",
+            }}
+            onClick={() => handleMenuItemClick("Application Form")}
+            className="cursor-pointer"
+          >
+            Application Form
+          </Link>
+        </NavbarItem>
+      </NavbarContent>
+
+      <NavbarContent as="div" justify="end">
+        <Dropdown placement="bottom-end">
+          <DropdownTrigger>
+            <Avatar
+              isBordered
+              as="button"
+              className="transition-transform"
+              color="secondary"
+              name={session?.user?.name[0]}
+              size="sm"
+              src={session?.user?.image}
+            />
+          </DropdownTrigger>
+          <DropdownMenu aria-label="Profile Actions" variant="flat">
+            <DropdownItem key="profile" className="h-14 gap-2">
+              <p className="font-semibold">Signed in as</p>
+              <p className="font-semibold">{session?.user?.email}</p>
+            </DropdownItem>
+            <DropdownItem
+              key="settings"
+              onClick={() => (window.location.href = "/account")}
+            >
+              Account Settings
+            </DropdownItem>
+
+            <DropdownItem key="logout" color="danger" onClick={logoutUser}>
+              Log Out
+            </DropdownItem>
+          </DropdownMenu>
+        </Dropdown>
+      </NavbarContent>
+      <NavbarMenu>
+        {menuItems.map((item, index) => (
+          <NavbarMenuItem key={`${item}-${index}`}>
+            <Link
+              color={
+                index === 2
+                  ? "primary"
+                  : index === menuItems.length - 1
+                  ? "primary"
+                  : "foreground"
+              }
+              className="w-full"
+              href="#"
+              size="lg"
+              onClick={() => handleMenuItemClick(item)}
+            >
+              {item}
+            </Link>
+          </NavbarMenuItem>
+        ))}
+      </NavbarMenu>
+    </NextUINavbar>
+  );
+}

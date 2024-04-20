@@ -3,7 +3,7 @@ import React from 'react'
 const FacultyDashboard = () => {
   return (
     <div>
-      Fac dashboard
+      Faculty dashboard
     </div>
   )
 }

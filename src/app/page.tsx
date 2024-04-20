@@ -7,7 +7,7 @@ export default function Home() {
   const handleLogin = async (e: any) => {
     e.preventDefault();
     const res = await signIn("google", { callbackUrl: "/dashboard" });
-    console.log("t", res);
+    // console.log("t", res);
   };
 
   return (
