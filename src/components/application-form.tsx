@@ -48,6 +48,8 @@ const ApplicationForm = ({ user }: { user: string }) => {
     e.preventDefault();
 
     var formData = new FormData();
+    const submissionTime = new Date().toISOString();
+    
     try {
       formData.append("name", user);
       formData.append("idNumber", idNumber);
@@ -57,6 +59,7 @@ const ApplicationForm = ({ user }: { user: string }) => {
       attachments.forEach((file, index) => {
         formData.append(`attachment${index}`, file);
       });
+      formData.append("submission-time", submissionTime);
 
       const response = await fetch('/api/submit-makeup-request', {
         method: 'POST',
