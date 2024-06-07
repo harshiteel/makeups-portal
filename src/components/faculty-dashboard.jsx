@@ -7,62 +7,72 @@ import {
   TableRow,
   TableCell,
   Pagination,
-  getKeyValue,
+  Button,
+  ButtonGroup,
 } from "@nextui-org/react";
-import { Button, ButtonGroup } from "@nextui-org/react";
-
 import { useSession } from "next-auth/react";
 
-const AdminDashboard = () => {
+const FacultyDashboard = () => {
   const { data: session } = useSession();
   const [makeupRequests, setMakeupRequests] = useState([]);
   const [facultyCourseCode, setFacultyCourseCode] = useState("");
 
-  async function getFacultyCourseCode(facultyEmail) {
-    const response = await fetch("/api/fetch-faculty-course-code", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ facultyEmail, session }),
-    });
+  async function getFacultyCourseCode(fE) {
+    try {
+      const response = await fetch("/api/fetch-faculty-course-code", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ "email": fE, session: session }),
+      });
 
-    if (!response.ok) {
-      throw new Error("Failed to fetch faculty course code");
+      const data = await response.json();
+      setFacultyCourseCode(data.courseCode);
+
+    } catch (error) {
+      alert("We couldn't find any courses registered to you as its Instructor Incharge. If you think this is a mistake, please contact TimeTable Division.");
     }
-
-    const data = await response.json();
-    setFacultyCourseCode(data.courseCode);
   }
 
   async function fetchMakeupRequests(courseCode) {
-    const response = await fetch("/api/fetch-makeup-requests", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ courseCode, session }),
-    });
+    try {
+      const response = await fetch("/api/fetch-makeup-requests", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ courseCode, session }),
+      });
 
-    if (!response.ok) {
-      throw new Error("Failed to fetch makeup requests");
+      if (!response.ok) {
+        throw new Error("Failed to fetch makeup requests");
+      }
+
+      const data = await response.json();
+      const sortedData = data.sort((a, b) => {
+        const dateA = new Date(a["submission-time"]);
+        const dateB = new Date(b["submission-time"]);
+        return dateB.getTime() - dateA.getTime();
+      });
+      setMakeupRequests(sortedData);
+    } catch (error) {
+      alert("Failed to fetch makeup requests");
     }
-
-    const data = await response.json();
-    const sortedData = data.sort((a, b) => {
-      const dateA = new Date(a["submission-time"]);
-      const dateB = new Date(b["submission-time"]);
-      return dateB - dateA;
-    });
-    setMakeupRequests(sortedData);
   }
 
   useEffect(() => {
-    if (session) {
-      getFacultyCourseCode(session?.user?.email);
-      fetchMakeupRequests(facultyCourseCode);
-    }
-  }, [session]);
+    const fetchData = async () => {
+      if (session?.user?.email) {
+        await getFacultyCourseCode(session.user.email);
+      }
+      if (facultyCourseCode) {
+        await fetchMakeupRequests(facultyCourseCode);
+      }
+    };
+
+    fetchData();
+  }, [session, facultyCourseCode]);
 
   function formatDateTime(dateTimeString) {
     const date = new Date(dateTimeString);
@@ -89,10 +99,11 @@ const AdminDashboard = () => {
 
     return makeupRequests.slice(start, end);
   }, [page, makeupRequests]);
+
   return (
     <div>
       <h1 className="font-semibold my-4 italic text-center">
-        {session?.user?.name}'s Admin Dashboard
+        {session?.user?.name}'s Faculty Dashboard
       </h1>
       <Table
         bottomContent={
@@ -113,26 +124,22 @@ const AdminDashboard = () => {
         }}
       >
         <TableHeader className="items-center justify-center flex">
-          <TableColumn title="Name" className="text-center" />
-          <TableColumn title="ID Number" className="text-center" />
-          <TableColumn title="Course Code" className="text-center" />
-          <TableColumn title="Evaluative Component" className="text-center" />
-          <TableColumn title="Reason" className="text-center" />
-          <TableColumn title="Submitted At" className="text-center" />
-          <TableColumn title="Attachments" className="text-center" />
-          <TableColumn title="Actions" className="text-center" />
+          <TableColumn className="text-center">Name</TableColumn>
+          <TableColumn className="text-center">ID Number</TableColumn>
+          <TableColumn className="text-center">Course Code</TableColumn>
+          <TableColumn className="text-center">Evaluative Component</TableColumn>
+          <TableColumn className="text-center">Reason</TableColumn>
+          <TableColumn className="text-center">Submitted At</TableColumn>
+          <TableColumn className="text-center">Attachments</TableColumn>
+          <TableColumn className="text-center">Actions</TableColumn>
         </TableHeader>
         <TableBody items={paginatedRequests}>
           {paginatedRequests.map((request, index) => (
             <TableRow key={index}>
               <TableCell className="text-center">{request.name}</TableCell>
               <TableCell className="text-center">{request.idNumber}</TableCell>
-              <TableCell className="text-center">
-                {request.courseCode}
-              </TableCell>
-              <TableCell className="text-center">
-                {request.evalComponent}
-              </TableCell>
+              <TableCell className="text-center">{request.courseCode}</TableCell>
+              <TableCell className="text-center">{request.evalComponent}</TableCell>
               <TableCell className="text-center">{request.reason}</TableCell>
               <TableCell className="text-center">
                 {formatDateTime(request["submission-time"])}
@@ -145,12 +152,12 @@ const AdminDashboard = () => {
               <TableCell className="text-center">
                 <div className="flex gap-4 items-center justify-center">
                   <ButtonGroup>
-                  <Button size="sm" radius="md" color="success">
-                    Approve
-                  </Button>
-                  <Button size="sm" radius="md" color="danger">
-                    Deny
-                  </Button>
+                    <Button size="sm" radius="md" color="success">
+                      Approve
+                    </Button>
+                    <Button size="sm" radius="md" color="danger">
+                      Deny
+                    </Button>
                   </ButtonGroup>
                 </div>
               </TableCell>
@@ -162,4 +169,4 @@ const AdminDashboard = () => {
   );
 };
 
-export default AdminDashboard;
+export default FacultyDashboard;

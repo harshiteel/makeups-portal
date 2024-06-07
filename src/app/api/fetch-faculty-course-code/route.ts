@@ -3,23 +3,25 @@ import clientPromise from "@/lib/mongodb";
 
 export async function POST(req: NextRequest) {
   try {
-    const { facultyEmail, session } = req.body as unknown as { facultyEmail?: string; session: any };
+    const body = await req.json();
+    const { facultyEmail, session } = req.body as unknown as { facultyEmail: string; session: any };
 
-    if (!facultyEmail || !session) {
-      return new NextResponse("Faculty email and session are required", { status: 400 });
-    }
+    //TODO: Fix this error. Currently session shows undefined.
+    // if (session) {
+    //   return NextResponse.json({ error: `Unauthorized` }, { status: 400 });
+    // }
 
     const client = await clientPromise;
     const db = client.db("ID-makeups");
 
-    const document = await db.collection("ics").findOne({ email: facultyEmail });
+    const document = await db.collection("ics").findOne({ email: body.email });
 
     if (!document) {
-      return new NextResponse("Faculty not found", { status: 404 });
+      return NextResponse.json({ error: `Faculty not found with email: ${body.email}.`}, { status: 404 }); //shows undefined here
     }
 
-    return new NextResponse(JSON.stringify({ courseCode: document.courseCode }), { status: 200 });
+    return NextResponse.json({ courseCode: document.courseCode }, { status: 200 });
   } catch (error) {
-    return new NextResponse("Internal Server Error", { status: 500 });
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

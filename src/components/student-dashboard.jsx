@@ -18,25 +18,30 @@ const StudentDashboard = () => {
   const [makeupRequests, setMakeupRequests] = useState([]);
 
   async function getMyRequests(myEmail) {
-    const response = await fetch("/api/fetch-my-requests", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ myEmail, session }),
-    });
-
-    if (!response.ok) {
-      throw new Error("Failed to fetch makeup requests");
+    try {
+      const response = await fetch("/api/fetch-my-requests", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ myEmail, session }),
+      });
+  
+      if (!response.ok) {
+        throw new Error("Failed to fetch makeup requests");
+      }
+  
+      const data = await response.json();
+      const sortedData = data.sort((a, b) => {
+        const dateA = new Date(a["submission-time"]);
+        const dateB = new Date(b["submission-time"]);
+        return dateB - dateA;
+      });
+      setMakeupRequests(sortedData);
+      
+    } catch (error) {
+      // alert("Failed to fetch makeup requests");
     }
-
-    const data = await response.json();
-    const sortedData = data.sort((a, b) => {
-      const dateA = new Date(a["submission-time"]);
-      const dateB = new Date(b["submission-time"]);
-      return dateB - dateA;
-    });
-    setMakeupRequests(sortedData);
   }
 
   useEffect(() => {
