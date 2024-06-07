@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { MongoClient } from 'mongodb';
 
-const MONGO_URI = process.env.MONGO_DB_URI; 
+const MONGO_URI = process.env.MONGODB_URI; 
 
 export async function POST(request: NextRequest) {
   try {

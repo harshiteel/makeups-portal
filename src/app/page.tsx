@@ -29,19 +29,7 @@ export default function Home() {
 
       {/* Auth section */}
       <div className="flex flex-col space-y-4 items-center my-8">
-        <button
-          onClick={handleLogin}
-          className="bg-blue-500 w-1/4 hover:bg-blue-600 text-white flex items-center justify-center mx-6 py-2 px-4 rounded-lg shadow-lg transition duration-300"
-        >
-          <Image
-            src="/images/professor.png"
-            alt="Prof"
-            width={32}
-            height={32}
-            className="mr-2"
-          />
-          <h3 className="text-lg font-medium">Faculty Login</h3>
-        </button>
+
         <button
           onClick={handleLogin}
           className="bg-green-500 w-1/4 hover:bg-green-600 text-white flex items-center justify-center mx-6 py-2 px-4 rounded-lg shadow-lg transition duration-300"
@@ -53,7 +41,7 @@ export default function Home() {
             height={32}
             className="mr-2"
           />
-          <h3 className="text-lg font-medium">Student Login</h3>
+          <h3 className="text-lg font-medium">Login with Google</h3>
         </button>
       </div>
     </div>

@@ -24,7 +24,7 @@ const AccountSettings = () => {
 
   return (
     <div>
-      <Navbar session={session} setNavBarPage={setNavBarPage} />
+      <Navbar session={session} setNavBarPage={setNavBarPage} navBarPage={navBarPage} />
       <h1>Account Settings</h1>
       <div className="flex items-center">
         <Switch
