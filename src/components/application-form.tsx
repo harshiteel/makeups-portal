@@ -49,7 +49,7 @@ const ApplicationForm = ({ user }: { user: string }) => {
 
     var formData = new FormData();
     const submissionTime = new Date().toISOString();
-    
+
     try {
       formData.append("name", user);
       formData.append("idNumber", idNumber);
@@ -60,24 +60,29 @@ const ApplicationForm = ({ user }: { user: string }) => {
         formData.append(`attachment${index}`, file);
       });
       formData.append("submission-time", submissionTime);
+      formData.append("status", "Pending");
 
-      const response = await fetch('/api/submit-makeup-request', {
-        method: 'POST',
+      const response = await fetch("/api/submit-makeup-request", {
+        method: "POST",
         body: formData,
       });
-  
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       } else {
-        const data = await response.json();
-        console.log(data);
+        alert(
+          "Your Makeup request has been successfully submitted. You will be notified of the status via email."
+        );
       }
-
     } catch (error) {
-      console.log(error);
+      // console.log(error);
+      alert(
+        "An error has occurred while submitting your request, please try again later. If the issue persists, contact TimeTable Division."
+      );
+    } finally {
+      window.location.reload();
     }
   };
-
 
   return (
     <div className="min-h-screen bg-gray-100 py-6 px-4 sm:px-6 lg:px-8 flex items-center justify-center">
