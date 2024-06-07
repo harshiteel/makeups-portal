@@ -1,4 +1,3 @@
-// src/app/api/fetch-makeup-requests/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
 
@@ -18,15 +17,32 @@ export async function POST(req: NextRequest) {
       filter = { courseCode };
     }
 
-    const projection = {
-      attachments: 0, // Exclude attributes starting with 'attachments'
-    };
+    const pipeline = [
+      { $match: filter },
+      {
+        $addFields: {
+          tempArray: { $objectToArray: "$$ROOT" }
+        }
+      },
+      {
+        $addFields: {
+          filteredArray: {
+            $filter: {
+              input: "$tempArray",
+              as: "item",
+              cond: { $not: [{ $regexMatch: { input: "$$item.k", regex: "^attachment" } }] }
+            }
+          }
+        }
+      },
+      {
+        $replaceRoot: {
+          newRoot: { $arrayToObject: "$filteredArray" }
+        }
+      }
+    ];
 
-    const makeupRequests = await db
-      .collection("makeup-requests")
-      .find(filter)
-      .project(projection)
-      .toArray();
+    const makeupRequests = await db.collection("makeup-requests").aggregate(pipeline).toArray();
 
     return new NextResponse(JSON.stringify(makeupRequests), { status: 200 });
   } catch (error) {

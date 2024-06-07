@@ -9,7 +9,7 @@ import {
   Pagination,
   getKeyValue,
 } from "@nextui-org/react";
-import { Button } from "@nextui-org/react";
+import { Button, ButtonGroup } from "@nextui-org/react";
 
 import { useSession } from "next-auth/react";
 
@@ -101,7 +101,6 @@ const AdminDashboard = () => {
           <TableColumn title="Reason" className="text-center" />
           <TableColumn title="Submitted At" className="text-center" />
           <TableColumn title="Attachments" className="text-center" />
-          <TableColumn title="Status" className="text-center" />
           <TableColumn title="Actions" className="text-center" />
         </TableHeader>
         <TableBody items={paginatedRequests}>
@@ -120,17 +119,20 @@ const AdminDashboard = () => {
                 {formatDateTime(request["submission-time"])}
               </TableCell>
               <TableCell className="text-center">
-                {request.attachments}
+                <Button size="sm" radius="full" variant="light" color="primary">
+                  View Attachments
+                </Button>
               </TableCell>
-              <TableCell className="text-center">{request.status}</TableCell>
               <TableCell className="text-center">
                 <div className="flex gap-4 items-center justify-center">
-                  <Button radius="full" color="success">
+                  <ButtonGroup>
+                  <Button size="sm" radius="md" color="success">
                     Approve
                   </Button>
-                  <Button radius="full" color="danger">
+                  <Button size="sm" radius="md" color="danger">
                     Deny
                   </Button>
+                  </ButtonGroup>
                 </div>
               </TableCell>
             </TableRow>
