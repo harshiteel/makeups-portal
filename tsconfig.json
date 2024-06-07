@@ -24,6 +24,6 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "src/lib/auth-middleware.ts", "src/components/admin-dashboard.jsx"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "src/components/admin-dashboard.jsx", "src/components/student-dashboard.jsx", "src/components/faculty-dashboard.jsx"],
   "exclude": ["node_modules"]
 }

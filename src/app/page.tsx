@@ -2,14 +2,16 @@
 
 import Image from "next/image";
 import { signIn } from "next-auth/react";
-import "./globals.css"
+import "./globals.css";
+import { Button } from "@nextui-org/react";
+
 export default function Home() {
   const handleLogin = async (e: any) => {
     e.preventDefault();
     const res = await signIn("google", { callbackUrl: "/dashboard" });
     // console.log("t", res);
   };
-
+  
   return (
     <div className="min-h-screen bg-gray-100 text-black flex-col">
       <div className="w-64 h-64 relative mr-4 left-8">
@@ -29,20 +31,20 @@ export default function Home() {
 
       {/* Auth section */}
       <div className="flex flex-col space-y-4 items-center my-8">
-
-        <button
+        <Button
+          color="default"
+          size="lg"
+          variant="shadow"
           onClick={handleLogin}
-          className="bg-green-500 w-1/4 hover:bg-green-600 text-white flex items-center justify-center mx-6 py-2 px-4 rounded-lg shadow-lg transition duration-300"
         >
           <Image
-            src="/images/student.png"
-            alt="Student"
+            src="/images/google-icon-logo-svg.svg"
             width={32}
             height={32}
-            className="mr-2"
-          />
-          <h3 className="text-lg font-medium">Login with Google</h3>
-        </button>
+            alt="G"
+          ></Image>
+          <h1 className=" font-semibold text-center">Login with Google</h1>
+        </Button>
       </div>
     </div>
   );
