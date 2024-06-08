@@ -10,12 +10,15 @@ import {
   Button,
   ButtonGroup,
 } from "@nextui-org/react";
+
+import { Tabs, Tab } from "@nextui-org/react";
 import { useSession } from "next-auth/react";
 
 const FacultyDashboard = ({ searchTerm }) => {
   const { data: session } = useSession();
   const [makeupRequests, setMakeupRequests] = useState([]);
   const [facultyCourseCode, setFacultyCourseCode] = useState("");
+  const [activeTab, setActiveTab] = useState("Pending");
 
   async function getFacultyCourseCode(fE) {
     try {
@@ -36,18 +39,23 @@ const FacultyDashboard = ({ searchTerm }) => {
     }
   }
 
-  async function fetchMakeupRequests(courseCode) {
+  async function fetchData(courseCode, status) {
     try {
-      const response = await fetch("/api/fetch-makeup-requests", {
+      // const capitalizedStatus = status.charAt(0).toUpperCase() + status.slice(1);
+      const response = await fetch("/api/fetch-requests", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ courseCode, session }),
+        body: JSON.stringify({
+          courseCode: courseCode,
+          status: status,
+          session: session,
+        }),
       });
 
       if (!response.ok) {
-        throw new Error("Failed to fetch makeup requests, " + response.message);
+        throw new Error("Failed to fetch requests");
       }
 
       const data = await response.json();
@@ -64,17 +72,17 @@ const FacultyDashboard = ({ searchTerm }) => {
 
   useEffect(() => {
     document.title = "Faculty Dashboard";
-    const fetchData = async () => {
+    const fetchDataByTab = async () => {
       if (session?.user?.email) {
         await getFacultyCourseCode(session.user.email);
       }
       if (facultyCourseCode) {
-        await fetchMakeupRequests(facultyCourseCode);
+        await fetchData(facultyCourseCode, activeTab);
       }
     };
 
-    fetchData();
-  }, [session, facultyCourseCode]);
+    fetchDataByTab();
+  }, [session, facultyCourseCode, activeTab]);
 
   function formatDateTime(dateTimeString) {
     const date = new Date(dateTimeString);
@@ -99,17 +107,18 @@ const FacultyDashboard = ({ searchTerm }) => {
         body: JSON.stringify({ id: id, status: status, session: session }),
       });
 
-
-      console.log("aa ",id, status, session);
+      console.log("aa ", id, status, session);
 
       if (!response.ok) {
-        throw new Error("Failed to update request status, " + JSON.stringify(response));
+        throw new Error(
+          "Failed to update request status, " + JSON.stringify(response)
+        );
       }
 
       alert("Request status updated successfully");
 
       // Refresh makeup requests after update
-      await fetchMakeupRequests(facultyCourseCode);
+      await fetchData(facultyCourseCode, activeTab);
     } catch (error) {
       alert(error.message);
     }
@@ -137,10 +146,24 @@ const FacultyDashboard = ({ searchTerm }) => {
   }, [page, filteredRequests]);
 
   return (
-    <div>
+    <div className="flex flex-col items-center h-screen">
       <h1 className="font-semibold my-4 italic text-center">
         {session?.user?.name}'s Faculty Dashboard
       </h1>
+
+      <Tabs
+        className="flex items-center my-6 justify-center"
+        activeKey={activeTab}
+        onSelectionChange={(key) => {
+          setActiveTab(key);
+          fetchData(facultyCourseCode, key);
+        }}
+      >
+        <Tab key="Pending" title="Pending Requests" />
+        <Tab key="Approved" title="Accepted Requests" />
+        <Tab key="Denied" title="Rejected Requests" />
+      </Tabs>
+
       <Table
         bottomContent={
           <div className="flex w-full justify-center">
@@ -198,7 +221,9 @@ const FacultyDashboard = ({ searchTerm }) => {
                       size="sm"
                       radius="md"
                       color="success"
-                      onClick={() => updateRequestStatus(request._id, "Accepted")}
+                      onClick={() =>
+                        updateRequestStatus(request._id, "Accepted")
+                      }
                     >
                       Approve
                     </Button>
