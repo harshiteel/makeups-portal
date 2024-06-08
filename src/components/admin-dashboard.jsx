@@ -23,7 +23,7 @@ const AdminDashboard = ({ searchTerm }) => {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ status:status, session: session }),
+      body: JSON.stringify({ status: status, session: session }),
     });
 
     if (!response.ok) {
@@ -126,7 +126,10 @@ const AdminDashboard = ({ searchTerm }) => {
           <TableColumn title="Submitted At" className="text-center" />
           <TableColumn title="Attachments" className="text-center" />
         </TableHeader>
-        <TableBody items={paginatedRequests}>
+        <TableBody
+          items={paginatedRequests}
+          emptyContent={"No rows to display."}
+        >
           {paginatedRequests.map((request, index) => (
             <TableRow key={index}>
               <TableCell className="text-center">{request.name}</TableCell>
@@ -141,7 +144,8 @@ const AdminDashboard = ({ searchTerm }) => {
                 {request.reason.length > 20
                   ? `${request.reason.slice(0, 20)}...`
                   : request.reason}
-              </TableCell>              <TableCell className="text-center">
+              </TableCell>{" "}
+              <TableCell className="text-center">
                 {formatDateTime(request["submission-time"])}
               </TableCell>
               <TableCell className="text-center">

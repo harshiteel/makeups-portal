@@ -132,7 +132,7 @@ const StudentDashboard = ({ searchTerm }) => {
           <TableColumn title="Attachments" className="text-center" />
           <TableColumn title="Status" className="text-center" />
         </TableHeader>
-        <TableBody items={paginatedRequests}>
+        <TableBody items={paginatedRequests} emptyContent={"No rows to display."}>
           {paginatedRequests.map((request, index) => (
             <TableRow key={index}>
               <TableCell className="text-center">{request.name}</TableCell>

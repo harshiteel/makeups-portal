@@ -194,9 +194,12 @@ const FacultyDashboard = ({ searchTerm }) => {
           <TableColumn className="text-center">Attachments</TableColumn>
           <TableColumn className="text-center">Actions</TableColumn>
         </TableHeader>
-        <TableBody items={paginatedRequests}>
+        <TableBody
+          items={paginatedRequests}
+          emptyContent={"No rows to display."}
+        >
           {paginatedRequests.map((request, index) => (
-            <TableRow key={index}>
+            <TableRow key={index} className=" hover:bg-gray-100 hover:cursor-pointer hover:shadow-sm hover:delay-[150]">
               <TableCell className="text-center">{request.name}</TableCell>
               <TableCell className="text-center">{request.idNumber}</TableCell>
               <TableCell className="text-center">
@@ -228,6 +231,7 @@ const FacultyDashboard = ({ searchTerm }) => {
                       onClick={() =>
                         updateRequestStatus(request._id, "Accepted")
                       }
+                      isDisabled={request.status === "Accepted"}
                     >
                       Approve
                     </Button>
@@ -236,6 +240,7 @@ const FacultyDashboard = ({ searchTerm }) => {
                       radius="md"
                       color="danger"
                       onClick={() => updateRequestStatus(request._id, "Denied")}
+                      isDisabled={request.status === "Denied"}
                     >
                       Deny
                     </Button>
