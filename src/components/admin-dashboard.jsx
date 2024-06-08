@@ -10,18 +10,20 @@ import {
 } from "@nextui-org/react";
 import { Button, ButtonGroup } from "@nextui-org/react";
 import { useSession } from "next-auth/react";
+import { Tabs, Tab } from "@nextui-org/react";
 
 const AdminDashboard = ({ searchTerm }) => {
   const { data: session } = useSession();
   const [makeupRequests, setMakeupRequests] = useState([]);
+  const [activeTab, setActiveTab] = useState("Pending");
 
-  async function fetchMakeupRequests() {
+  async function fetchData(status) {
     const response = await fetch("/api/fetch-requests", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ session }),
+      body: JSON.stringify({ status:status, session: session }),
     });
 
     if (!response.ok) {
@@ -40,7 +42,7 @@ const AdminDashboard = ({ searchTerm }) => {
   useEffect(() => {
     document.title = "Admin Dashboard";
     if (session) {
-      fetchMakeupRequests();
+      fetchData(activeTab);
     }
   }, [session]);
 
@@ -83,6 +85,20 @@ const AdminDashboard = ({ searchTerm }) => {
       <h1 className="font-semibold my-4 italic text-center">
         {session?.user?.name}'s Admin Dashboard
       </h1>
+
+      <Tabs
+        className="flex items-center my-6 justify-center"
+        activeKey={activeTab}
+        onSelectionChange={(key) => {
+          setActiveTab(key);
+          fetchData(key);
+        }}
+      >
+        <Tab key="Pending" title="Pending Requests" />
+        <Tab key="Accepted" title="Accepted Requests" />
+        <Tab key="Denied" title="Rejected Requests" />
+      </Tabs>
+
       <Table
         bottomContent={
           <div className="flex w-full justify-center">
@@ -109,15 +125,18 @@ const AdminDashboard = ({ searchTerm }) => {
           <TableColumn title="Reason" className="text-center" />
           <TableColumn title="Submitted At" className="text-center" />
           <TableColumn title="Attachments" className="text-center" />
-          <TableColumn title="Actions" className="text-center" />
         </TableHeader>
         <TableBody items={paginatedRequests}>
           {paginatedRequests.map((request, index) => (
             <TableRow key={index}>
               <TableCell className="text-center">{request.name}</TableCell>
               <TableCell className="text-center">{request.idNumber}</TableCell>
-              <TableCell className="text-center">{request.courseCode}</TableCell>
-              <TableCell className="text-center">{request.evalComponent}</TableCell>
+              <TableCell className="text-center">
+                {request.courseCode}
+              </TableCell>
+              <TableCell className="text-center">
+                {request.evalComponent}
+              </TableCell>
               <TableCell className="text-center">{request.reason}</TableCell>
               <TableCell className="text-center">
                 {formatDateTime(request["submission-time"])}
@@ -126,18 +145,6 @@ const AdminDashboard = ({ searchTerm }) => {
                 <Button size="sm" radius="full" variant="light" color="primary">
                   View Attachments
                 </Button>
-              </TableCell>
-              <TableCell className="text-center">
-                <div className="flex gap-4 items-center justify-center">
-                  <ButtonGroup>
-                    <Button size="sm" radius="md" color="success">
-                      Approve
-                    </Button>
-                    <Button size="sm" radius="md" color="danger">
-                      Deny
-                    </Button>
-                  </ButtonGroup>
-                </div>
               </TableCell>
             </TableRow>
           ))}

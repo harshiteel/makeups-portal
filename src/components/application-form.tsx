@@ -4,7 +4,12 @@ import { useState } from "react";
 import { Textarea } from "@nextui-org/react";
 import { useDropzone } from "react-dropzone";
 
-const ApplicationForm = ({ user }: { user: string }) => {
+interface ApplicationFormProps {
+  user: string;
+  email: string;
+}
+
+const ApplicationForm: React.FC<ApplicationFormProps> = ({ user, email }) => {
   const [idNumber, setIdNumber] = useState("");
   const [courseCode, setCourseCode] = useState("");
   const [evalComponent, setEvalComponent] = useState("");
@@ -53,6 +58,7 @@ const ApplicationForm = ({ user }: { user: string }) => {
     try {
       formData.append("name", user);
       formData.append("idNumber", idNumber);
+      formData.append("email", email);
       formData.append("courseCode", courseCode);
       formData.append("evalComponent", evalComponent);
       formData.append("reason", reason);
@@ -71,11 +77,10 @@ const ApplicationForm = ({ user }: { user: string }) => {
         throw new Error(`HTTP error! status: ${response.status}`);
       } else {
         alert(
-          "Your Makeup request has been successfully submitted. You will be notified of the status via email."
+          "Your Makeup request has been successfully submitted to your course IC. Please keep checking your dashboard for updates."
         );
       }
     } catch (error) {
-      // console.log(error);
       alert(
         "An error has occurred while submitting your request, please try again later. If the issue persists, contact TimeTable Division."
       );
@@ -102,6 +107,12 @@ const ApplicationForm = ({ user }: { user: string }) => {
               </label>
               <p className="text-sm md:text-base font-semibold">{user}</p>
             </div>
+            <div className="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-4 mb-4">
+              <label htmlFor="email" className="font-semibold">
+                Email:
+              </label>
+              <p className="text-sm md:text-base italics">{email}</p>
+            </div>
 
             <div className="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-4 mb-4">
               <label htmlFor="idNumber" className="font-semibold">
@@ -126,6 +137,7 @@ const ApplicationForm = ({ user }: { user: string }) => {
                 type="text"
                 id="courseCode"
                 value={courseCode}
+                placeholder="Eg: CS F111"
                 onChange={(e) => setCourseCode(e.target.value)}
                 className="w-full md:w-1/2 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-400"
               />
@@ -151,7 +163,7 @@ const ApplicationForm = ({ user }: { user: string }) => {
                 Reason
               </label>
               <Textarea
-                placeholder="Please provide a valid reason for your application."
+                placeholder="Please provide a reason for your makeup."
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 className="w-full px-1 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-400"

@@ -3,27 +3,25 @@ import clientPromise from "@/lib/mongodb";
 
 export async function POST(req: NextRequest) {
   try {
-    const { courseCode, session } = req.body as unknown as { courseCode?: string; session: any };
+    const body = await req.json();
 
-    // if (!session) {
-    //   console.log(session);
-    //   return new NextResponse("Unauthorized", { status: 401 });
-    // }
+    //TODO: Secure endpoint with session validation
+
+    if(!body.status || !body.email){
+        throw new NextResponse("No Email and Status", { status: 400 });
+    }
+
+    let filter: any = {status: body.status, email: body.email};
 
     const client = await clientPromise;
     const db = client.db("ID-makeups");
 
-    let filter: any = { status: "Pending" }; 
-    if (courseCode) {
-      filter.courseCode = courseCode; 
-    }
-
     const pipeline = [
-      { $match: filter }, 
+      { $match: filter },
       {
         $addFields: {
-          tempArray: { $objectToArray: "$$ROOT" }
-        }
+          tempArray: { $objectToArray: "$$ROOT" },
+        },
       },
       {
         $addFields: {
@@ -31,16 +29,16 @@ export async function POST(req: NextRequest) {
             $filter: {
               input: "$tempArray",
               as: "item",
-              cond: { $not: [{ $regexMatch: { input: "$$item.k", regex: "^attachment" } }] }
-            }
-          }
-        }
+              cond: { $not: [{ $regexMatch: { input: "$$item.k", regex: "^attachment" } }] },
+            },
+          },
+        },
       },
       {
         $replaceRoot: {
-          newRoot: { $arrayToObject: "$filteredArray" }
-        }
-      }
+          newRoot: { $arrayToObject: "$filteredArray" },
+        },
+      },
     ];
 
     const makeupRequests = await db.collection("makeup-requests").aggregate(pipeline).toArray();

@@ -68,7 +68,7 @@ const Dashboard = () => {
             <StudentDashboard searchTerm={searchTerm}/>
           )
         ) : navBarPage === "Application Form" ? (
-          <ApplicationForm user={session?.user?.name ?? ""} />
+          <ApplicationForm user={session?.user?.name ?? ""} email={session?.user?.email ?? ""}/>
         ) : (
           <div>Error</div>
         )}

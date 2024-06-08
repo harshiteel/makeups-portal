@@ -10,19 +10,21 @@ import {
 } from "@nextui-org/react";
 import { Button } from "@nextui-org/react";
 import { useSession } from "next-auth/react";
+import { Tabs, Tab } from "@nextui-org/react";
 
 const StudentDashboard = ({ searchTerm }) => {
   const { data: session } = useSession();
   const [makeupRequests, setMakeupRequests] = useState([]);
+  const [activeTab, setActiveTab] = useState("Pending");
 
-  async function getMyRequests(myEmail) {
+  async function getMyRequests(st) {
     try {
       const response = await fetch("/api/fetch-my-requests", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ myEmail, session }),
+        body: JSON.stringify({ email: session?.user?.email, session: session, status: st }),
       });
 
       if (!response.ok) {
@@ -88,6 +90,20 @@ const StudentDashboard = ({ searchTerm }) => {
       <h1 className="font-semibold my-4 italic text-center">
         {session?.user?.name}'s Student Dashboard
       </h1>
+
+      <Tabs
+        className="flex items-center my-6 justify-center"
+        activeKey={activeTab}
+        onSelectionChange={(key) => {
+          setActiveTab(key);
+          getMyRequests(key);
+        }}
+      >
+        <Tab key="Pending" title="Pending Requests" />
+        <Tab key="Accepted" title="Accepted Requests" />
+        <Tab key="Denied" title="Rejected Requests" />
+      </Tabs>
+
       <Table
         bottomContent={
           <div className="flex w-full justify-center">
@@ -121,8 +137,12 @@ const StudentDashboard = ({ searchTerm }) => {
             <TableRow key={index}>
               <TableCell className="text-center">{request.name}</TableCell>
               <TableCell className="text-center">{request.idNumber}</TableCell>
-              <TableCell className="text-center">{request.courseCode}</TableCell>
-              <TableCell className="text-center">{request.evalComponent}</TableCell>
+              <TableCell className="text-center">
+                {request.courseCode}
+              </TableCell>
+              <TableCell className="text-center">
+                {request.evalComponent}
+              </TableCell>
               <TableCell className="text-center">{request.reason}</TableCell>
               <TableCell className="text-center">
                 {formatDateTime(request["submission-time"])}
