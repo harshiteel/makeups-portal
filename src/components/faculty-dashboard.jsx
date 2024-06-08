@@ -9,9 +9,17 @@ import {
   Pagination,
   Button,
   ButtonGroup,
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  useDisclosure,
+  RadioGroup,
+  Radio,
+  Tabs,
+  Tab,
 } from "@nextui-org/react";
-
-import { Tabs, Tab } from "@nextui-org/react";
 import { useSession } from "next-auth/react";
 
 const FacultyDashboard = ({ searchTerm }) => {
@@ -19,6 +27,11 @@ const FacultyDashboard = ({ searchTerm }) => {
   const [makeupRequests, setMakeupRequests] = useState([]);
   const [facultyCourseCode, setFacultyCourseCode] = useState("");
   const [activeTab, setActiveTab] = useState("Pending");
+
+  // Mdal
+  const { isOpen, onOpen, onOpenChange } = useDisclosure();
+  const [scrollBehavior, setScrollBehavior] = React.useState("inside");
+  const [modalData, setModalData] = React.useState(null);
 
   async function getFacultyCourseCode(fE) {
     try {
@@ -199,7 +212,14 @@ const FacultyDashboard = ({ searchTerm }) => {
           emptyContent={"No rows to display."}
         >
           {paginatedRequests.map((request, index) => (
-            <TableRow key={index} className=" hover:bg-gray-100 hover:cursor-pointer hover:shadow-sm hover:delay-[150]">
+            <TableRow
+              key={index}
+              className=" hover:bg-gray-100 hover:cursor-pointer hover:shadow-sm hover:delay-[150]"
+              onClick={() => {
+                setModalData(request);
+                onOpen();
+              }}
+            >
               <TableCell className="text-center">{request.name}</TableCell>
               <TableCell className="text-center">{request.idNumber}</TableCell>
               <TableCell className="text-center">
@@ -251,6 +271,108 @@ const FacultyDashboard = ({ searchTerm }) => {
           ))}
         </TableBody>
       </Table>
+
+      <Modal
+        isOpen={isOpen}
+        onOpenChange={onOpenChange}
+        scrollBehavior={scrollBehavior}
+        size="5xl"
+        backdrop="blur"
+      >
+        <ModalContent>
+          {(onClose) => (
+            <>
+              <ModalHeader className="flex flex-col gap-4">
+                {modalData.name}'s Makeup Request:
+              </ModalHeader>
+              <ModalBody>
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-4">
+                    <h3 className="font-semibold italic text-sm mb-0">Name:</h3>
+                    <p className="text-base mb-0">{modalData.name}</p>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <h3 className="font-semibold italic text-sm mb-0">
+                      Email:
+                    </h3>
+                    <p className="text-base mb-0">{modalData.email}</p>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <h3 className="font-semibold italic text-sm mb-0">
+                      ID Number:
+                    </h3>
+                    <p className="text-base mb-0">{modalData.idNumber}</p>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <h3 className="font-semibold italic text-sm mb-0">
+                      Course Code:
+                    </h3>
+                    <p className="text-base mb-0">{modalData.courseCode}</p>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <h3 className="font-semibold italic text-sm mb-0">
+                      Evaluative Component:
+                    </h3>
+                    <p className="text-base mb-0">{modalData.evalComponent}</p>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <h3 className="font-semibold italic text-sm mb-0">
+                      Reason for Makeup:
+                    </h3>
+                    <p className="text-base mb-0">{modalData.reason}</p>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <h3 className="font-semibold italic text-sm mb-0">
+                      Submitted On:
+                    </h3>
+                    <p className="text-base mb-0">
+                      {formatDateTime(modalData["submission-time"])}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <h3 className="font-semibold italic text-sm mb-0">
+                      Attachments:
+                    </h3>
+                    <p className="text-base mb-0">Coming Soon...</p>
+                  </div>
+                </div>
+                <ButtonGroup>
+                  <Button
+                    size="sm"
+                    radius="md"
+                    color="success"
+                    onClick={() => {
+                      onClose;
+                      updateRequestStatus(modalData._id, "Accepted");
+                    }}
+                    isDisabled={modalData.status === "Accepted"}
+                  >
+                    Approve
+                  </Button>
+                  <Button
+                    size="sm"
+                    radius="md"
+                    color="danger"
+                    onClick={() => {
+                      onClose;
+                      updateRequestStatus(modalData._id, "Denied");
+                    }}
+                    isDisabled={modalData.status === "Denied"}
+                  >
+                    Deny
+                  </Button>
+                </ButtonGroup>
+              </ModalBody>
+
+              <ModalFooter>
+                <Button color="danger" variant="light" onPress={onClose}>
+                  Close
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
     </div>
   );
 };
