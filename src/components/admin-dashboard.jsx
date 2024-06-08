@@ -16,7 +16,7 @@ const AdminDashboard = ({ searchTerm }) => {
   const [makeupRequests, setMakeupRequests] = useState([]);
 
   async function fetchMakeupRequests() {
-    const response = await fetch("/api/fetch-makeup-requests", {
+    const response = await fetch("/api/fetch-requests", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

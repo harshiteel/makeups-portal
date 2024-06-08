@@ -4,27 +4,19 @@ import clientPromise from "@/lib/mongodb";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    // const { courseCode, status, session } = req.body as unknown as {
-    //   courseCode?: string;
-    //   status: string;
-    //   session: any;
-    // };
 
-    const status = body.status;
-    const courseCode = body.courseCode;
-    const session = body.session;
-
-    // if (!session) {
-    //   return new NextResponse("Unauthorized", { status: 401 });
-    // }
+    let filter: any = {};
+    if (body) {
+      if (body.status) {
+        filter.status = body.status;
+      }
+      if (body.courseCode) {
+        filter.courseCode = body.courseCode;
+      }
+    }
 
     const client = await clientPromise;
     const db = client.db("ID-makeups");
-
-    let filter: any = { status }; // Filter based on the provided status
-    if (courseCode) {
-      filter.courseCode = courseCode;
-    }
 
     const pipeline = [
       { $match: filter },

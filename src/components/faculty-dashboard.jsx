@@ -160,7 +160,7 @@ const FacultyDashboard = ({ searchTerm }) => {
         }}
       >
         <Tab key="Pending" title="Pending Requests" />
-        <Tab key="Approved" title="Accepted Requests" />
+        <Tab key="Accepted" title="Accepted Requests" />
         <Tab key="Denied" title="Rejected Requests" />
       </Tabs>
 
