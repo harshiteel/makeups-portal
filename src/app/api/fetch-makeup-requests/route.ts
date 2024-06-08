@@ -5,20 +5,21 @@ export async function POST(req: NextRequest) {
   try {
     const { courseCode, session } = req.body as unknown as { courseCode?: string; session: any };
 
-    if (session) {
-      return new NextResponse("Unauthorized", { status: 401 });
-    }
+    // if (!session) {
+    //   console.log(session);
+    //   return new NextResponse("Unauthorized", { status: 401 });
+    // }
 
     const client = await clientPromise;
     const db = client.db("ID-makeups");
 
-    let filter = {};
+    let filter: any = { status: "Pending" }; 
     if (courseCode) {
-      filter = { courseCode };
+      filter.courseCode = courseCode; 
     }
 
     const pipeline = [
-      { $match: filter },
+      { $match: filter }, 
       {
         $addFields: {
           tempArray: { $objectToArray: "$$ROOT" }

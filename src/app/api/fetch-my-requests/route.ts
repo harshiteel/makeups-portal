@@ -5,9 +5,9 @@ export async function POST(req: NextRequest) {
   try {
     const { email, session } = req.body as unknown as { email?: string; session: any };
 
-    if (session) {
-      return new NextResponse("Unauthorized", { status: 401 });
-    }
+    // if (!session) {
+    //   return new NextResponse("Unauthorized", { status: 401 });
+    // }
 
     const client = await clientPromise;
     const db = client.db("ID-makeups");

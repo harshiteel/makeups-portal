@@ -47,7 +47,7 @@ const FacultyDashboard = ({ searchTerm }) => {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to fetch makeup requests");
+        throw new Error("Failed to fetch makeup requests, " + response.message);
       }
 
       const data = await response.json();
@@ -58,7 +58,7 @@ const FacultyDashboard = ({ searchTerm }) => {
       });
       setMakeupRequests(sortedData);
     } catch (error) {
-      alert("Failed to fetch makeup requests");
+      alert(error.message);
     }
   }
 
@@ -87,6 +87,32 @@ const FacultyDashboard = ({ searchTerm }) => {
       year: "numeric",
     };
     return date.toLocaleString("en-GB", options);
+  }
+
+  async function updateRequestStatus(id, status) {
+    try {
+      const response = await fetch("/api/update-request-status", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ id: id, status: status, session: session }),
+      });
+
+
+      console.log("aa ",id, status, session);
+
+      if (!response.ok) {
+        throw new Error("Failed to update request status, " + JSON.stringify(response));
+      }
+
+      alert("Request status updated successfully");
+
+      // Refresh makeup requests after update
+      await fetchMakeupRequests(facultyCourseCode);
+    } catch (error) {
+      alert(error.message);
+    }
   }
 
   // Pagination
@@ -168,10 +194,20 @@ const FacultyDashboard = ({ searchTerm }) => {
               <TableCell className="text-center">
                 <div className="flex gap-4 items-center justify-center">
                   <ButtonGroup>
-                    <Button size="sm" radius="md" color="success">
+                    <Button
+                      size="sm"
+                      radius="md"
+                      color="success"
+                      onClick={() => updateRequestStatus(request._id, "Accepted")}
+                    >
                       Approve
                     </Button>
-                    <Button size="sm" radius="md" color="danger">
+                    <Button
+                      size="sm"
+                      radius="md"
+                      color="danger"
+                      onClick={() => updateRequestStatus(request._id, "Denied")}
+                    >
                       Deny
                     </Button>
                   </ButtonGroup>
