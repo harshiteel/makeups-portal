@@ -143,8 +143,11 @@ const StudentDashboard = ({ searchTerm }) => {
               <TableCell className="text-center">
                 {request.evalComponent}
               </TableCell>
-              <TableCell className="text-center">{request.reason}</TableCell>
               <TableCell className="text-center">
+                {request.reason.length > 20
+                  ? `${request.reason.slice(0, 20)}...`
+                  : request.reason}
+              </TableCell>              <TableCell className="text-center">
                 {formatDateTime(request["submission-time"])}
               </TableCell>
               <TableCell className="text-center">
