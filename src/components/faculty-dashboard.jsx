@@ -12,7 +12,7 @@ import {
 } from "@nextui-org/react";
 import { useSession } from "next-auth/react";
 
-const FacultyDashboard = () => {
+const FacultyDashboard = ({ searchTerm }) => {
   const { data: session } = useSession();
   const [makeupRequests, setMakeupRequests] = useState([]);
   const [facultyCourseCode, setFacultyCourseCode] = useState("");
@@ -24,14 +24,15 @@ const FacultyDashboard = () => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ "email": fE, session: session }),
+        body: JSON.stringify({ email: fE, session: session }),
       });
 
       const data = await response.json();
       setFacultyCourseCode(data.courseCode);
-
     } catch (error) {
-      alert("We couldn't find any courses registered to you as its Instructor Incharge. If you think this is a mistake, please contact TimeTable Division.");
+      alert(
+        "We couldn't find any courses registered to you as its Instructor Incharge. If you think this is a mistake, please contact TimeTable Division."
+      );
     }
   }
 
@@ -62,6 +63,7 @@ const FacultyDashboard = () => {
   }
 
   useEffect(() => {
+    document.title = "Faculty Dashboard";
     const fetchData = async () => {
       if (session?.user?.email) {
         await getFacultyCourseCode(session.user.email);
@@ -93,12 +95,20 @@ const FacultyDashboard = () => {
 
   const pages = Math.ceil(makeupRequests.length / rowsPerPage);
 
+  const filteredRequests = React.useMemo(() => {
+    if (!searchTerm) return makeupRequests;
+    return makeupRequests.filter((request) =>
+      Object.values(request).some((value) =>
+        value.toString().toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    );
+  }, [searchTerm, makeupRequests]);
+
   const paginatedRequests = React.useMemo(() => {
     const start = (page - 1) * rowsPerPage;
     const end = start + rowsPerPage;
-
-    return makeupRequests.slice(start, end);
-  }, [page, makeupRequests]);
+    return filteredRequests.slice(start, end);
+  }, [page, filteredRequests]);
 
   return (
     <div>
@@ -127,7 +137,9 @@ const FacultyDashboard = () => {
           <TableColumn className="text-center">Name</TableColumn>
           <TableColumn className="text-center">ID Number</TableColumn>
           <TableColumn className="text-center">Course Code</TableColumn>
-          <TableColumn className="text-center">Evaluative Component</TableColumn>
+          <TableColumn className="text-center">
+            Evaluative Component
+          </TableColumn>
           <TableColumn className="text-center">Reason</TableColumn>
           <TableColumn className="text-center">Submitted At</TableColumn>
           <TableColumn className="text-center">Attachments</TableColumn>
@@ -138,8 +150,12 @@ const FacultyDashboard = () => {
             <TableRow key={index}>
               <TableCell className="text-center">{request.name}</TableCell>
               <TableCell className="text-center">{request.idNumber}</TableCell>
-              <TableCell className="text-center">{request.courseCode}</TableCell>
-              <TableCell className="text-center">{request.evalComponent}</TableCell>
+              <TableCell className="text-center">
+                {request.courseCode}
+              </TableCell>
+              <TableCell className="text-center">
+                {request.evalComponent}
+              </TableCell>
               <TableCell className="text-center">{request.reason}</TableCell>
               <TableCell className="text-center">
                 {formatDateTime(request["submission-time"])}

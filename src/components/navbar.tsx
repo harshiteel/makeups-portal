@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
 import {
+  Input,
   Navbar as NextUINavbar,
   NavbarBrand,
   NavbarContent,
@@ -22,12 +23,16 @@ interface NavbarProps {
   session: any;
   setNavBarPage: (page: string) => void;
   navBarPage: any;
+  searchTerm: any;
+  setSearchTerm: (term: string) => void;
 }
 
 export default function Navbar({
   session,
   navBarPage,
   setNavBarPage,
+  searchTerm,
+  setSearchTerm
 }: NavbarProps) {
   const logoutUser = async () => {
     await signOut({ callbackUrl: "/" });
@@ -90,6 +95,9 @@ export default function Navbar({
       </NavbarContent>
 
       <NavbarContent as="div" justify="end">
+        <NavbarItem>
+        <Input type="text" key="inside" labelPlacement="inside" size="sm" variant="bordered" label="Search" isClearable value={searchTerm} onValueChange={setSearchTerm}/>
+        </NavbarItem>
         <Dropdown placement="bottom-end">
           <DropdownTrigger>
             <Avatar

@@ -4,14 +4,18 @@ import Image from "next/image";
 import { signIn } from "next-auth/react";
 import "./globals.css";
 import { Button } from "@nextui-org/react";
+import { useState } from "react";
 
 export default function Home() {
+  const [isLoading, setIsLoading] = useState(false);
+
   const handleLogin = async (e: any) => {
     e.preventDefault();
+    setIsLoading(true);
     const res = await signIn("google", { callbackUrl: "/dashboard" });
     // console.log("t", res);
   };
-  
+
   return (
     <div className="min-h-screen bg-gray-100 text-black flex-col">
       <div className="w-64 h-64 relative mr-4 left-8">
@@ -36,13 +40,16 @@ export default function Home() {
           size="lg"
           variant="shadow"
           onClick={handleLogin}
+          isLoading={isLoading}
         >
-          <Image
-            src="/images/google-icon-logo-svg.svg"
-            width={32}
-            height={32}
-            alt="G"
-          ></Image>
+          {!isLoading && (
+            <Image
+              src="/images/google-icon-logo-svg.svg"
+              width={32}
+              height={32}
+              alt="G"
+            ></Image>
+          )}
           <h1 className=" font-semibold text-center">Login with Google</h1>
         </Button>
       </div>

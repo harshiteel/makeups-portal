@@ -7,23 +7,21 @@ import {
   TableRow,
   TableCell,
   Pagination,
-  getKeyValue,
 } from "@nextui-org/react";
 import { Button, ButtonGroup } from "@nextui-org/react";
-
 import { useSession } from "next-auth/react";
 
-const AdminDashboard = () => {
+const AdminDashboard = ({ searchTerm }) => {
   const { data: session } = useSession();
   const [makeupRequests, setMakeupRequests] = useState([]);
 
-  async function fetchMakeupRequests(courseCode) {
+  async function fetchMakeupRequests() {
     const response = await fetch("/api/fetch-makeup-requests", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ courseCode, session }),
+      body: JSON.stringify({ session }),
     });
 
     if (!response.ok) {
@@ -40,6 +38,7 @@ const AdminDashboard = () => {
   }
 
   useEffect(() => {
+    document.title = "Admin Dashboard";
     if (session) {
       fetchMakeupRequests();
     }
@@ -62,14 +61,23 @@ const AdminDashboard = () => {
   const [page, setPage] = useState(1);
   const rowsPerPage = 10; // Hardcoded to 10 entries per page. TODO: User defined
 
-  const pages = Math.ceil(makeupRequests.length / rowsPerPage);
+  const filteredRequests = React.useMemo(() => {
+    if (!searchTerm) return makeupRequests;
+    return makeupRequests.filter((request) =>
+      Object.values(request).some((value) =>
+        value.toString().toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    );
+  }, [searchTerm, makeupRequests]);
 
   const paginatedRequests = React.useMemo(() => {
     const start = (page - 1) * rowsPerPage;
     const end = start + rowsPerPage;
+    return filteredRequests.slice(start, end);
+  }, [page, filteredRequests]);
 
-    return makeupRequests.slice(start, end);
-  }, [page, makeupRequests]);
+  const pages = Math.ceil(filteredRequests.length / rowsPerPage);
+
   return (
     <div>
       <h1 className="font-semibold my-4 italic text-center">
@@ -108,12 +116,8 @@ const AdminDashboard = () => {
             <TableRow key={index}>
               <TableCell className="text-center">{request.name}</TableCell>
               <TableCell className="text-center">{request.idNumber}</TableCell>
-              <TableCell className="text-center">
-                {request.courseCode}
-              </TableCell>
-              <TableCell className="text-center">
-                {request.evalComponent}
-              </TableCell>
+              <TableCell className="text-center">{request.courseCode}</TableCell>
+              <TableCell className="text-center">{request.evalComponent}</TableCell>
               <TableCell className="text-center">{request.reason}</TableCell>
               <TableCell className="text-center">
                 {formatDateTime(request["submission-time"])}
@@ -126,12 +130,12 @@ const AdminDashboard = () => {
               <TableCell className="text-center">
                 <div className="flex gap-4 items-center justify-center">
                   <ButtonGroup>
-                  <Button size="sm" radius="md" color="success">
-                    Approve
-                  </Button>
-                  <Button size="sm" radius="md" color="danger">
-                    Deny
-                  </Button>
+                    <Button size="sm" radius="md" color="success">
+                      Approve
+                    </Button>
+                    <Button size="sm" radius="md" color="danger">
+                      Deny
+                    </Button>
                   </ButtonGroup>
                 </div>
               </TableCell>

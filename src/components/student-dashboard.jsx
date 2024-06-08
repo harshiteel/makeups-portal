@@ -7,13 +7,11 @@ import {
   TableRow,
   TableCell,
   Pagination,
-  getKeyValue,
 } from "@nextui-org/react";
-import { Button, ButtonGroup } from "@nextui-org/react";
-
+import { Button } from "@nextui-org/react";
 import { useSession } from "next-auth/react";
 
-const StudentDashboard = () => {
+const StudentDashboard = ({ searchTerm }) => {
   const { data: session } = useSession();
   const [makeupRequests, setMakeupRequests] = useState([]);
 
@@ -26,11 +24,11 @@ const StudentDashboard = () => {
         },
         body: JSON.stringify({ myEmail, session }),
       });
-  
+
       if (!response.ok) {
         throw new Error("Failed to fetch makeup requests");
       }
-  
+
       const data = await response.json();
       const sortedData = data.sort((a, b) => {
         const dateA = new Date(a["submission-time"]);
@@ -38,13 +36,14 @@ const StudentDashboard = () => {
         return dateB - dateA;
       });
       setMakeupRequests(sortedData);
-      
     } catch (error) {
       // alert("Failed to fetch makeup requests");
     }
   }
 
   useEffect(() => {
+    document.title = "Student Dashboard";
+
     if (session) {
       getMyRequests(session?.user?.email);
     }
@@ -67,14 +66,23 @@ const StudentDashboard = () => {
   const [page, setPage] = useState(1);
   const rowsPerPage = 10; // Hardcoded to 10 entries per page. TODO: User defined
 
-  const pages = Math.ceil(makeupRequests.length / rowsPerPage);
+  const filteredRequests = React.useMemo(() => {
+    if (!searchTerm) return makeupRequests;
+    return makeupRequests.filter((request) =>
+      Object.values(request).some((value) =>
+        value.toString().toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    );
+  }, [searchTerm, makeupRequests]);
 
   const paginatedRequests = React.useMemo(() => {
     const start = (page - 1) * rowsPerPage;
     const end = start + rowsPerPage;
+    return filteredRequests.slice(start, end);
+  }, [page, filteredRequests]);
 
-    return makeupRequests.slice(start, end);
-  }, [page, makeupRequests]);
+  const pages = Math.ceil(filteredRequests.length / rowsPerPage);
+
   return (
     <div>
       <h1 className="font-semibold my-4 italic text-center">
@@ -113,12 +121,8 @@ const StudentDashboard = () => {
             <TableRow key={index}>
               <TableCell className="text-center">{request.name}</TableCell>
               <TableCell className="text-center">{request.idNumber}</TableCell>
-              <TableCell className="text-center">
-                {request.courseCode}
-              </TableCell>
-              <TableCell className="text-center">
-                {request.evalComponent}
-              </TableCell>
+              <TableCell className="text-center">{request.courseCode}</TableCell>
+              <TableCell className="text-center">{request.evalComponent}</TableCell>
               <TableCell className="text-center">{request.reason}</TableCell>
               <TableCell className="text-center">
                 {formatDateTime(request["submission-time"])}

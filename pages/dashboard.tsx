@@ -17,6 +17,8 @@ const Dashboard = () => {
 
   const [navBarPage, setNavBarPage] = useState("Dashboard");
 
+  const [searchTerm, setSearchTerm] = useState("");
+
   const fetchAccountType = async () => {
     try {
       const response = await fetch("/api/check-account-type", {
@@ -32,11 +34,9 @@ const Dashboard = () => {
       }
 
       const data = await response.json();
-      // console.log("d", data);
       setAccountType(data.accountType);
     } catch (error) {
-      // console.error("Error fetching account type:", error);
-      setAccountType("student");
+      alert("Unauthorized access")
     }
   };
 
@@ -54,16 +54,18 @@ const Dashboard = () => {
         session={session}
         navBarPage={navBarPage}
         setNavBarPage={setNavBarPage}
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
       />
 
       <div className="flex-grow">
         {navBarPage === "Dashboard" ? (
           accountType === "admin" ? (
-            <AdminDashboard />
+            <AdminDashboard searchTerm={searchTerm}/>
           ) : accountType === "faculty" ? (
-            <FacultyDashboard />
+            <FacultyDashboard searchTerm={searchTerm}/>
           ) : (
-            <StudentDashboard />
+            <StudentDashboard searchTerm={searchTerm}/>
           )
         ) : navBarPage === "Application Form" ? (
           <ApplicationForm user={session?.user?.name ?? ""} />
