@@ -20,11 +20,11 @@ import TDLogo from "../../public/images/tdlogo-01.png";
 import Image from "next/image";
 
 interface NavbarProps {
-  session: any;
+  session?: any;
   setNavBarPage: (page: string) => void;
-  navBarPage: any;
-  searchTerm: any;
-  setSearchTerm: (term: string) => void;
+  navBarPage?: any;
+  searchTerm?: any;
+  setSearchTerm?: (term: string) => void;
 }
 
 export default function Navbar({
