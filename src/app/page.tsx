@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { signIn } from "next-auth/react";
 import "./globals.css";
-import { Button } from "@nextui-org/react";
+import { Button, Card, CardBody } from "@nextui-org/react";
 import { useState } from "react";
 
 export default function Home() {
@@ -26,33 +26,37 @@ export default function Home() {
           height={64}
         />
       </div>
-      <div className="flex flex-col items-center space-y-4">
-        <h1 className="text-3xl font-bold">Makeups Portal</h1>
-        <p className="text-lg">
-          Managed By TimeTable Division, BITS Pilani Hyderabad Campus
-        </p>
-      </div>
+      <Card className="flex md:w-1/2 lg:w-1/2 sm:w-full items-center justify-center mx-auto">
+        <CardBody>
+          <div className="flex flex-col items-center space-y-4">
+            <h1 className="text-3xl font-bold">Makeups Portal</h1>
+            <p className="lg:text-lg md:text-md sm:text-sm italic">
+              Managed By TimeTable Division, BITS Pilani Hyderabad Campus
+            </p>
+          </div>
 
-      {/* Auth section */}
-      <div className="flex flex-col space-y-4 items-center my-8">
-        <Button
-          color="default"
-          size="lg"
-          variant="shadow"
-          onClick={handleLogin}
-          isLoading={isLoading}
-        >
-          {!isLoading && (
-            <Image
-              src="/images/google-icon-logo-svg.svg"
-              width={32}
-              height={32}
-              alt="G"
-            ></Image>
-          )}
-          <h1 className=" font-semibold text-center">Login with Google</h1>
-        </Button>
-      </div>
+          {/* Auth section */}
+          <div className="flex flex-col space-y-4 items-center my-8">
+            <Button
+              color="default"
+              size="lg"
+              variant="shadow"
+              onClick={handleLogin}
+              isLoading={isLoading}
+            >
+              {!isLoading && (
+                <Image
+                  src="/images/google-icon-logo-svg.svg"
+                  width={32}
+                  height={32}
+                  alt="G"
+                ></Image>
+              )}
+              <h1 className=" font-semibold text-center">Login with Google</h1>
+            </Button>
+          </div>
+        </CardBody>
+      </Card>
     </div>
   );
 }
