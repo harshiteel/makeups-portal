@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Textarea } from "@nextui-org/react";
 import { useDropzone } from "react-dropzone";
+import Select from "react-select";
 
 interface ApplicationFormProps {
   user: string;
@@ -16,6 +17,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ user, email }) => {
   const [reason, setReason] = useState("");
   const [attachments, setAttachments] = useState<File[]>([]);
   const [errorMsg, setErrorMsg] = useState("");
+  const [courseCodes, setCourseCodes] = useState<string[]>([]);
 
   const handleImageDrop = (acceptedFiles: File[]) => {
     const allowedTypes = [
@@ -52,7 +54,12 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ user, email }) => {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    var formData = new FormData();
+    if (!idNumber || !courseCode || !evalComponent || !reason) {
+      setErrorMsg("Please fill out all required fields.");
+      return;
+    }
+
+    const formData = new FormData();
     const submissionTime = new Date().toISOString();
 
     try {
@@ -79,15 +86,43 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ user, email }) => {
         alert(
           "Your Makeup request has been successfully submitted to your course IC. Please keep checking your dashboard for updates."
         );
+        window.location.reload();
       }
     } catch (error) {
       alert(
         "An error has occurred while submitting your request, please try again later. If the issue persists, contact TimeTable Division."
       );
-    } finally {
-      window.location.reload();
     }
   };
+
+  const getCourseCodes = async () => {
+    try {
+      const response = await fetch("/api/get-all-course-codes", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setCourseCodes(data.courseCodes);
+    } catch (error) {
+      alert("Error fetching course codes");
+    }
+  };
+
+  useEffect(() => {
+    getCourseCodes();
+  }, []);
+
+  const courseOptions = courseCodes.map((cc) => ({
+    value: cc,
+    label: cc,
+  }));
 
   return (
     <div className="min-h-screen bg-gray-100 py-6 px-4 sm:px-6 lg:px-8 flex items-center justify-center">
@@ -119,7 +154,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ user, email }) => {
                 ID Number:
               </label>
               <input
-                // required
+                required
                 type="text"
                 id="idNumber"
                 value={idNumber}
@@ -132,15 +167,13 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ user, email }) => {
               <label htmlFor="courseCode" className="font-semibold">
                 Course Code:
               </label>
-              <input
-                // required
-                type="text"
-                id="courseCode"
-                value={courseCode}
-                placeholder="Eg: CS F111"
-                onChange={(e) => setCourseCode(e.target.value)}
-                className="w-full md:w-1/2 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-400"
-              />
+              <div className="w-full md:w-1/2">
+                <Select
+                  options={courseOptions}
+                  onChange={(option) => setCourseCode(option?.value || "")}
+                  placeholder="Type to search..."
+                />
+              </div>
             </div>
 
             <div className="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-4 mb-4">
@@ -148,7 +181,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ user, email }) => {
                 Evaluative Component:
               </label>
               <input
-                // required
+                required
                 type="text"
                 id="evalComponent"
                 value={evalComponent}
@@ -163,6 +196,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ user, email }) => {
                 Reason
               </label>
               <Textarea
+                required
                 placeholder="Please provide a reason for your makeup."
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
@@ -178,8 +212,8 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ user, email }) => {
               <p className="font-semibold">
                 Attach your prescriptions, etc here (max 5MB each){" "}
               </p>
-              <p className=" text-red-500">
-                <i className=" text-small">
+              <p className="text-red-500">
+                <i className="text-small">
                   (Allowed File Types: PDF, PNG, JPG, JPEG)
                 </i>
               </p>
