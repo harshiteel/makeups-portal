@@ -20,7 +20,7 @@ import {
   Tabs,
   Tab,
   Card,
-  CardBody
+  CardBody,
 } from "@nextui-org/react";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
@@ -31,10 +31,11 @@ const FacultyDashboard = ({ searchTerm }) => {
   const [facultyCourseCode, setFacultyCourseCode] = useState("");
   const [activeTab, setActiveTab] = useState("Pending");
 
-  // Mdal
+  // Modal
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [scrollBehavior, setScrollBehavior] = React.useState("inside");
   const [modalData, setModalData] = React.useState(null);
+  const [attachments, setAttachments] = React.useState([]);
 
   async function getFacultyCourseCode(fE) {
     try {
@@ -57,7 +58,6 @@ const FacultyDashboard = ({ searchTerm }) => {
 
   async function fetchData(courseCode, status) {
     try {
-      // const capitalizedStatus = status.charAt(0).toUpperCase() + status.slice(1);
       const response = await fetch("/api/fetch-requests", {
         method: "POST",
         headers: {
@@ -85,6 +85,82 @@ const FacultyDashboard = ({ searchTerm }) => {
       alert(error.message);
     }
   }
+
+  async function fetchAttachments(oid) {
+    try {
+      const response = await fetch("/api/fetch-attachments", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ id: oid, session: session }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch attachments");
+      }
+
+      const data = await response.json();
+      setAttachments(data);
+    } catch (error) {
+      alert(error.message);
+    }
+  }
+
+  // Helper function to get file extension from magic number
+  function getFileExtensionFromMagicNumber(magicNumber) {
+    switch (magicNumber) {
+      case "JVBERi0xLjMK": // PDF magic number
+        return "pdf";
+      case "/9j/4AAQSkZJRgAB": // JPG and JPEG magic number
+        return "jpg";
+      case "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9h": // PNG magic number
+        return "png";
+      default:
+        return null; // Unknown file type
+    }
+  }
+
+  const openAttachment = (attachmentKey) => {
+    try {
+      const base64Data = attachments[attachmentKey];
+      
+      // Check if base64Data is a valid Base64-encoded string
+      if (!isValidBase64(base64Data)) {
+        alert('Invalid Base64 data:', base64Data);
+        return;
+      }
+  
+      const binaryData = atob(base64Data);
+  
+      const magicNumber = binaryData.substring(0, 24);
+  
+      // Determine file extension based on magic number
+      const fileExtension = getFileExtensionFromMagicNumber(magicNumber);
+  
+      // Create Blob object with appropriate type based on file extension
+      const blobType = fileExtension === 'pdf' ? 'application/pdf' : `image/${fileExtension}`;
+      const blob = new Blob([binaryData], { type: blobType });
+  
+      // Create object URL
+      const url = URL.createObjectURL(blob);
+  
+      // Open URL in new window/tab
+      window.open(url, '_blank');
+    } catch (error) {
+      alert('Error decoding Base64 data:', error);
+    }
+  };
+  
+  // Helper function to check if a string is a valid Base64-encoded string
+  const isValidBase64 = (str) => {
+    try {
+      return btoa(atob(str)) === str;
+    } catch (error) {
+      return false;
+    }
+  };
+  
 
   useEffect(() => {
     document.title = "Faculty Dashboard";
@@ -221,6 +297,7 @@ const FacultyDashboard = ({ searchTerm }) => {
               onClick={() => {
                 setModalData(request);
                 onOpen();
+                fetchAttachments(request._id);
               }}
             >
               <TableCell className="text-center">{request.name}</TableCell>
@@ -337,13 +414,24 @@ const FacultyDashboard = ({ searchTerm }) => {
                       Attachments:
                     </h3>
 
-                    <Card className=" hover:cursor-pointer">
-                      <CardBody className="flex flex-row items-start">
-                        <Image src="/images/file-icon.svg" width={24} height={24} alt=""/>
-                        <p className="text-sm mx-6"> Attachment Name Coming Soon</p>
-                      </CardBody>
-                    </Card>
-                    
+                    {Object.keys(attachments).map((key, index) => (
+                      <div onClick={()=>openAttachment(attachments[key])} key={index}>
+                        <Card
+                          className="hover:cursor-pointer"
+                          onClick={() => openAttachment(attachments[key])}
+                        >
+                          <CardBody className="flex flex-row items-start">
+                            <Image
+                              src="/images/file-icon.svg"
+                              width={24}
+                              height={24}
+                              alt=""
+                            />
+                            <p className="text-sm mx-6">{key}</p>
+                          </CardBody>
+                        </Card>
+                      </div>
+                    ))}
                   </div>
                 </div>
                 <ButtonGroup>

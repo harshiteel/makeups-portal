@@ -6,6 +6,8 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
 
+    // if(!body.session) return new NextResponse("Unauthorized", { status: 401 });
+
     if (!body.id) return new NextResponse("No Id provided", { status: 400 });
 
     let id = body.id;
@@ -21,7 +23,7 @@ export async function POST(req: NextRequest) {
     if (!documents) return new NextResponse("Document not found", { status: 404 });
 
     const attachments = Object.entries(documents)
-      .filter(([key, value]) => key.startsWith("attachment-"))
+      .filter(([key, value]) => key.startsWith("attachment"))
       .reduce((acc, [key, value]) => {
         const trimmedKey = key.replace("attachment-", ""); // Truncate 'attachment-' from key
         return { ...acc, [trimmedKey]: value };
