@@ -18,11 +18,17 @@ export async function POST(request: NextRequest) {
         // If the value is a File, convert it to a BinData object
         const buffer = await value.arrayBuffer();
         const binData = new Binary(new Uint8Array(buffer));
-        formData[key] = binData;
+      
+        // Store the MIME type along with the BinData object
+        formData[key] = {
+          data: binData,
+          mimeType: value.type, // This assumes that 'value' is a File object with a 'type' property
+        };
       } else {
         // Otherwise, just add the value to the form data
         formData[key] = value;
       }
+      
     }
 
     await client.connect();

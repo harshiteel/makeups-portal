@@ -123,19 +123,18 @@ const FacultyDashboard = ({ searchTerm }) => {
 
   const openAttachment = (attachment) => {
     // Convert base64 string to binary data
-    const binaryData = atob(attachment);
-  
-    // Create a Blob object with the binary data
-    const blob = new Blob([binaryData], { type: 'application/octet-stream' });
-  
+    const binaryData = atob(attachment.data);
+
+    // Create a Blob object with the binary data and the correct MIME type
+    const blob = new Blob([binaryData], { type: attachment.mimeType });
+
     // Create an object URL for the Blob object
     const url = URL.createObjectURL(blob);
-  
+
     // Open the object URL in a new window or tab
-    window.open(url, '_blank');
+    window.open(url, "_blank");
   };
-  
-  
+
   // Helper function to check if a string is a valid Base64-encoded string
   const isValidBase64 = (str) => {
     try {
@@ -144,7 +143,6 @@ const FacultyDashboard = ({ searchTerm }) => {
       return false;
     }
   };
-  
 
   useEffect(() => {
     document.title = "Faculty Dashboard";
@@ -399,7 +397,10 @@ const FacultyDashboard = ({ searchTerm }) => {
                     </h3>
 
                     {Object.keys(attachments).map((key, index) => (
-                      <div onClick={()=>openAttachment(attachments[key])} key={index}>
+                      <div
+                        onClick={() => openAttachment(attachments[key])}
+                        key={index}
+                      >
                         <Card
                           className="hover:cursor-pointer"
                           onClick={() => openAttachment(attachments[key])}

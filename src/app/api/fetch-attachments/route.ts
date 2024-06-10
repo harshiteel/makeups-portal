@@ -21,19 +21,19 @@ export async function POST(req: NextRequest) {
     if (!documents) return new NextResponse("Document not found", { status: 404 });
 
     const attachments = Object.entries(documents)
-      .filter(([key, value]) => key.startsWith("attachment"))
-      .reduce((acc, [key, value]) => {
-        const trimmedKey = key.replace("attachment-", ""); // Truncate 'attachment-' from key
-        if (value instanceof Binary) {
-          // If the value is a BinData object, convert it to a base64 string
-          const buffer = value.buffer as Buffer;
-          const base64 = buffer.toString('base64');
-          return { ...acc, [trimmedKey]: base64 };
-        } else {
-          return acc;
-        }
-        
-      }, {});
+  .filter(([key, value]) => key.startsWith("attachment"))
+  .reduce((acc, [key, value]) => {
+    const trimmedKey = key.replace("attachment-", ""); // Truncate 'attachment-' from key
+    if (value.data instanceof Binary) {
+      // If the value is a BinData object, convert it to a base64 string
+      const buffer = value.data.buffer as Buffer;
+      const base64 = buffer.toString('base64');
+      return { ...acc, [trimmedKey]: { data: base64, mimeType: value.mimeType } };
+    } else {
+      return acc;
+    }
+  }, {});
+
 
     return new NextResponse(JSON.stringify(attachments), { status: 200 });
   } catch (error) {
