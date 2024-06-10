@@ -89,7 +89,8 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ user, email }) => {
         throw new Error(`HTTP error! status: ${response.status}`);
       } else {
         alert(
-          "Your Makeup request has been successfully submitted to your course IC. Please keep checking your dashboard for updates."
+          JSON.stringify(response)
+          // "Your Makeup request has been successfully submitted to your course IC. Please keep checking your dashboard for updates."
         );
         window.location.reload();
       }

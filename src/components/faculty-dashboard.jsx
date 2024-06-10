@@ -121,36 +121,20 @@ const FacultyDashboard = ({ searchTerm }) => {
     }
   }
 
-  const openAttachment = (attachmentKey) => {
-    try {
-      const base64Data = attachments[attachmentKey];
-      
-      // Check if base64Data is a valid Base64-encoded string
-      if (!isValidBase64(base64Data)) {
-        alert('Invalid Base64 data:', base64Data);
-        return;
-      }
+  const openAttachment = (attachment) => {
+    // Convert base64 string to binary data
+    const binaryData = atob(attachment);
   
-      const binaryData = atob(base64Data);
+    // Create a Blob object with the binary data
+    const blob = new Blob([binaryData], { type: 'application/octet-stream' });
   
-      const magicNumber = binaryData.substring(0, 24);
+    // Create an object URL for the Blob object
+    const url = URL.createObjectURL(blob);
   
-      // Determine file extension based on magic number
-      const fileExtension = getFileExtensionFromMagicNumber(magicNumber);
-  
-      // Create Blob object with appropriate type based on file extension
-      const blobType = fileExtension === 'pdf' ? 'application/pdf' : `image/${fileExtension}`;
-      const blob = new Blob([binaryData], { type: blobType });
-  
-      // Create object URL
-      const url = URL.createObjectURL(blob);
-  
-      // Open URL in new window/tab
-      window.open(url, '_blank');
-    } catch (error) {
-      alert('Error decoding Base64 data:', error);
-    }
+    // Open the object URL in a new window or tab
+    window.open(url, '_blank');
   };
+  
   
   // Helper function to check if a string is a valid Base64-encoded string
   const isValidBase64 = (str) => {

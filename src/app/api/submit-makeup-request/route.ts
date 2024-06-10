@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { MongoClient } from 'mongodb';
+import { MongoClient, Binary } from 'mongodb';
 
 const MONGO_URI = process.env.MONGODB_URI; 
 
@@ -15,10 +15,10 @@ export async function POST(request: NextRequest) {
       const value = entry[1];
 
       if (value instanceof File) {
-        // If the value is a File, convert it to a base64 string
+        // If the value is a File, convert it to a BinData object
         const buffer = await value.arrayBuffer();
-        const base64 = Buffer.from(buffer).toString('base64');
-        formData[key] = base64;
+        const binData = new Binary(new Uint8Array(buffer));
+        formData[key] = binData;
       } else {
         // Otherwise, just add the value to the form data
         formData[key] = value;

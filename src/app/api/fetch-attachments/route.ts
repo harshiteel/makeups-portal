@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
-import { ObjectId } from "mongodb";
+import { ObjectId, Binary } from "mongodb";
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-
-    // if(!body.session) return new NextResponse("Unauthorized", { status: 401 });
 
     if (!body.id) return new NextResponse("No Id provided", { status: 400 });
 
@@ -26,12 +24,20 @@ export async function POST(req: NextRequest) {
       .filter(([key, value]) => key.startsWith("attachment"))
       .reduce((acc, [key, value]) => {
         const trimmedKey = key.replace("attachment-", ""); // Truncate 'attachment-' from key
-        return { ...acc, [trimmedKey]: value };
+        if (value instanceof Binary) {
+          // If the value is a BinData object, convert it to a base64 string
+          const buffer = value.buffer as Buffer;
+          const base64 = buffer.toString('base64');
+          return { ...acc, [trimmedKey]: base64 };
+        } else {
+          return acc;
+        }
+        
       }, {});
 
     return new NextResponse(JSON.stringify(attachments), { status: 200 });
   } catch (error) {
-    // console.error("Error in POST route:", error);
+    console.error('Error:', error);
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 }
