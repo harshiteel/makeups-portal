@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Textarea } from "@nextui-org/react";
+import { Textarea, Card, CardBody } from "@nextui-org/react";
 import { useDropzone } from "react-dropzone";
 import Select from "react-select";
+import Image from "next/image";
 
 interface ApplicationFormProps {
   user: string;
@@ -18,6 +19,10 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ user, email }) => {
   const [attachments, setAttachments] = useState<File[]>([]);
   const [errorMsg, setErrorMsg] = useState("");
   const [courseCodes, setCourseCodes] = useState<string[]>([]);
+  const [uploadProgress, setUploadProgress] = useState<Record<string, number>>(
+    {}
+  );
+  const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
 
   const handleImageDrop = (acceptedFiles: File[]) => {
     const allowedTypes = [
@@ -69,8 +74,8 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ user, email }) => {
       formData.append("courseCode", courseCode);
       formData.append("evalComponent", evalComponent);
       formData.append("reason", reason);
-      attachments.forEach((file, index) => {
-        formData.append(`attachment${index}`, file);
+      attachments.forEach((file) => {
+        formData.append(`attachment-${file.name}`, file);
       });
       formData.append("submission-time", submissionTime);
       formData.append("status", "Pending");
@@ -123,6 +128,13 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ user, email }) => {
     value: cc,
     label: cc,
   }));
+
+  const deleteFile = (fileName: string) => {
+    const updatedAttachments = attachments.filter(
+      (file) => file.name !== fileName
+    );
+    setAttachments(updatedAttachments);
+  };
 
   return (
     <div className="min-h-screen bg-gray-100 py-6 px-4 sm:px-6 lg:px-8 flex items-center justify-center">
@@ -217,6 +229,42 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ user, email }) => {
                   (Allowed File Types: PDF, PNG, JPG, JPEG)
                 </i>
               </p>
+            </div>
+
+            <div className="flex flex-col my-4">
+              {attachments.map((file) => {
+                return (
+                  <div
+                    key={file.name}
+                    className="flex flex-col items-start mx-8 my-2"
+                  >
+                    <Card>
+                      <CardBody className="flex flex-row items-start justify-center my-auto">
+                        <Image
+                          src="/images/file-icon.svg"
+                          width={24}
+                          height={24}
+                          alt=""
+                        />
+                        <div className="flex flex-col">
+                          <p className="text-md mx-6">{file.name}</p>
+                          <p className={`text-sm mx-6 italic`}>
+                            Size: {(file.size / 1048576).toFixed(2)} MB
+                          </p>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => deleteFile(file.name)}
+                          className="text-black-500 mx-6"
+                        >
+                          ❌
+                        </button>
+                      </CardBody>
+                    </Card>
+                  </div>
+                );
+              })}
             </div>
 
             <button

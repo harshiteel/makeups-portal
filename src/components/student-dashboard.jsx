@@ -7,10 +7,11 @@ import {
   TableRow,
   TableCell,
   Pagination,
+  Button,
+  Tabs,
+  Tab,
 } from "@nextui-org/react";
-import { Button } from "@nextui-org/react";
 import { useSession } from "next-auth/react";
-import { Tabs, Tab } from "@nextui-org/react";
 
 const StudentDashboard = ({ searchTerm }) => {
   const { data: session } = useSession();
@@ -147,7 +148,8 @@ const StudentDashboard = ({ searchTerm }) => {
                 {request.reason.length > 20
                   ? `${request.reason.slice(0, 20)}...`
                   : request.reason}
-              </TableCell>              <TableCell className="text-center">
+              </TableCell>
+              <TableCell className="text-center">
                 {formatDateTime(request["submission-time"])}
               </TableCell>
               <TableCell className="text-center">

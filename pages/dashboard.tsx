@@ -51,11 +51,11 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar
-        session={session}
         navBarPage={navBarPage}
         setNavBarPage={setNavBarPage}
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
+        userEmail = {session?.user?.email ?? ""}
       />
 
       <div className="flex-grow">

@@ -15,7 +15,7 @@ import {
   DropdownMenu,
   Avatar,
 } from "@nextui-org/react";
-import { signOut } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import TDLogo from "../../public/images/tdlogo-01.png";
 import Image from "next/image";
 
@@ -25,18 +25,21 @@ interface NavbarProps {
   navBarPage?: any;
   searchTerm?: any;
   setSearchTerm?: (term: string) => void;
+  userEmail?: string;
 }
 
 export default function Navbar({
-  session,
   navBarPage,
   setNavBarPage,
   searchTerm,
   setSearchTerm,
+  userEmail
 }: NavbarProps) {
   const logoutUser = async () => {
     await signOut({ callbackUrl: "/" });
   };
+
+  const { data: session, status } = useSession();
 
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const [accountType, setAccountType] = useState("");
@@ -57,7 +60,7 @@ export default function Navbar({
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ email: session?.user?.email }),
+          body: JSON.stringify({ email: userEmail }),
         });
 
         if (!response.ok) {
@@ -67,7 +70,7 @@ export default function Navbar({
         const data = await response.json();
         setAccountType(data.accountType);
       } catch (error) {
-        alert("Unauthorized access");
+        // alert("Unauthorized access");
       }
     };
 
@@ -104,7 +107,8 @@ export default function Navbar({
             Dashboard
           </Link>
         </NavbarItem>
-        {accountType === "student" && (
+        {/* TODO: Fix. api not getting correct email for checking account type. */}
+        {/* {accountType === "student" && ( */}
           <NavbarItem
             className={navBarPage === "Application Form" ? "isActive" : ""}
           >
@@ -120,7 +124,7 @@ export default function Navbar({
               Application Form
             </Link>
           </NavbarItem>
-        )}
+        {/* )} */}
       </NavbarContent>
 
       <NavbarContent as="div" justify="end">
@@ -144,9 +148,9 @@ export default function Navbar({
               as="button"
               className="transition-transform"
               color="secondary"
-              name={session?.user?.name[0]}
+              name={session?.user?.name?.[0] ?? ""}
               size="sm"
-              src={session?.user?.image}
+              src={session?.user?.image ?? ""}
             />
           </DropdownTrigger>
           <DropdownMenu aria-label="Profile Actions" variant="flat">

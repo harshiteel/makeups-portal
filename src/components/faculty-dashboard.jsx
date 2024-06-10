@@ -19,8 +19,11 @@ import {
   Radio,
   Tabs,
   Tab,
+  Card,
+  CardBody
 } from "@nextui-org/react";
 import { useSession } from "next-auth/react";
+import Image from "next/image";
 
 const FacultyDashboard = ({ searchTerm }) => {
   const { data: session } = useSession();
@@ -333,7 +336,14 @@ const FacultyDashboard = ({ searchTerm }) => {
                     <h3 className="font-semibold italic text-sm mb-0">
                       Attachments:
                     </h3>
-                    <p className="text-base mb-0">Coming Soon...</p>
+
+                    <Card className=" hover:cursor-pointer">
+                      <CardBody className="flex flex-row items-start">
+                        <Image src="/images/file-icon.svg" width={24} height={24} alt=""/>
+                        <p className="text-sm mx-6"> Attachment Name Coming Soon</p>
+                      </CardBody>
+                    </Card>
+                    
                   </div>
                 </div>
                 <ButtonGroup>
