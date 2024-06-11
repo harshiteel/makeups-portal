@@ -199,6 +199,8 @@ const FacultyDashboard = ({ searchTerm }) => {
         {session?.user?.name}'s Faculty Dashboard
       </h1>
 
+      <p className="italic font-sm">Click a row to open deatailed view</p>
+
       <Tabs
         className="flex items-center my-6 justify-center"
         activeKey={activeTab}
@@ -239,7 +241,6 @@ const FacultyDashboard = ({ searchTerm }) => {
           </TableColumn>
           <TableColumn className="text-center">Reason</TableColumn>
           <TableColumn className="text-center">Submitted At</TableColumn>
-          <TableColumn className="text-center">Attachments</TableColumn>
           <TableColumn className="text-center">Actions</TableColumn>
         </TableHeader>
         <TableBody
@@ -271,11 +272,6 @@ const FacultyDashboard = ({ searchTerm }) => {
               </TableCell>
               <TableCell className="text-center">
                 {formatDateTime(request["submission-time"])}
-              </TableCell>
-              <TableCell className="text-center">
-                <Button size="sm" radius="full" variant="light" color="primary">
-                  View Attachments
-                </Button>
               </TableCell>
               <TableCell className="text-center">
                 <div className="flex gap-4 items-center justify-center">
