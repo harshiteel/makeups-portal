@@ -19,8 +19,11 @@ import {
   Radio,
   Tabs,
   Tab,
+  Card,
+  CardBody,
 } from "@nextui-org/react";
 import { useSession } from "next-auth/react";
+import Image from "next/image";
 
 const FacultyDashboard = ({ searchTerm }) => {
   const { data: session } = useSession();
@@ -28,10 +31,11 @@ const FacultyDashboard = ({ searchTerm }) => {
   const [facultyCourseCode, setFacultyCourseCode] = useState("");
   const [activeTab, setActiveTab] = useState("Pending");
 
-  // Mdal
+  // Modal
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [scrollBehavior, setScrollBehavior] = React.useState("inside");
   const [modalData, setModalData] = React.useState(null);
+  const [attachments, setAttachments] = React.useState([]);
 
   async function getFacultyCourseCode(fE) {
     try {
@@ -54,7 +58,6 @@ const FacultyDashboard = ({ searchTerm }) => {
 
   async function fetchData(courseCode, status) {
     try {
-      // const capitalizedStatus = status.charAt(0).toUpperCase() + status.slice(1);
       const response = await fetch("/api/fetch-requests", {
         method: "POST",
         headers: {
@@ -83,8 +86,40 @@ const FacultyDashboard = ({ searchTerm }) => {
     }
   }
 
+  async function fetchAttachments(oid) {
+    try {
+      const response = await fetch("/api/fetch-attachments", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ id: oid, session: session }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch attachments");
+      }
+
+      const data = await response.json();
+      setAttachments(data);
+    } catch (error) {
+      alert(error.message);
+    }
+  }
+
+  const openAttachment = (attachment) => {
+    const byteCharacters = atob(attachment.data);
+    const byteNumbers = new Array(byteCharacters.length)
+      .fill(0)
+      .map((_, i) => byteCharacters.charCodeAt(i));
+    const byteArray = new Uint8Array(byteNumbers);
+    const blob = new Blob([byteArray], { type: attachment.mimeType });
+    const url = URL.createObjectURL(blob);
+    window.open(url, "_blank");
+  };
+
   useEffect(() => {
-    document.title = "Faculty Dashboard";
+    document.title = "Faculty Dashboard | Makeups Portal";
     const fetchDataByTab = async () => {
       if (session?.user?.email) {
         await getFacultyCourseCode(session.user.email);
@@ -164,6 +199,8 @@ const FacultyDashboard = ({ searchTerm }) => {
         {session?.user?.name}'s Faculty Dashboard
       </h1>
 
+      <p className="italic font-sm">Click a row to open deatailed view</p>
+
       <Tabs
         className="flex items-center my-6 justify-center"
         activeKey={activeTab}
@@ -204,7 +241,6 @@ const FacultyDashboard = ({ searchTerm }) => {
           </TableColumn>
           <TableColumn className="text-center">Reason</TableColumn>
           <TableColumn className="text-center">Submitted At</TableColumn>
-          <TableColumn className="text-center">Attachments</TableColumn>
           <TableColumn className="text-center">Actions</TableColumn>
         </TableHeader>
         <TableBody
@@ -218,6 +254,7 @@ const FacultyDashboard = ({ searchTerm }) => {
               onClick={() => {
                 setModalData(request);
                 onOpen();
+                fetchAttachments(request._id);
               }}
             >
               <TableCell className="text-center">{request.name}</TableCell>
@@ -235,11 +272,6 @@ const FacultyDashboard = ({ searchTerm }) => {
               </TableCell>
               <TableCell className="text-center">
                 {formatDateTime(request["submission-time"])}
-              </TableCell>
-              <TableCell className="text-center">
-                <Button size="sm" radius="full" variant="light" color="primary">
-                  View Attachments
-                </Button>
               </TableCell>
               <TableCell className="text-center">
                 <div className="flex gap-4 items-center justify-center">
@@ -333,7 +365,30 @@ const FacultyDashboard = ({ searchTerm }) => {
                     <h3 className="font-semibold italic text-sm mb-0">
                       Attachments:
                     </h3>
-                    <p className="text-base mb-0">Coming Soon...</p>
+
+                    {Object.keys(attachments).map((key, index) => (
+                      <div
+                        onClick={() => openAttachment(attachments[key])}
+                        key={index}
+                      >
+                        <Card
+                          className="hover:cursor-pointer"
+                          onClick={() => openAttachment(attachments[key])}
+                        >
+                          <CardBody className="flex flex-row items-start">
+                            <Image
+                              src="/images/file-icon.svg"
+                              width={24}
+                              height={24}
+                              alt=""
+                            />
+                            <p className="text-sm mx-6">
+                              {key.replace("attachment-", "")}
+                            </p>
+                          </CardBody>
+                        </Card>
+                      </div>
+                    ))}
                   </div>
                 </div>
                 <ButtonGroup>

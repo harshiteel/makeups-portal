@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Input,
   Navbar as NextUINavbar,
@@ -15,7 +15,7 @@ import {
   DropdownMenu,
   Avatar,
 } from "@nextui-org/react";
-import { signOut } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import TDLogo from "../../public/images/tdlogo-01.png";
 import Image from "next/image";
 
@@ -25,20 +25,24 @@ interface NavbarProps {
   navBarPage?: any;
   searchTerm?: any;
   setSearchTerm?: (term: string) => void;
+  userEmail?: string;
 }
 
 export default function Navbar({
-  session,
   navBarPage,
   setNavBarPage,
   searchTerm,
-  setSearchTerm
+  setSearchTerm,
+  userEmail
 }: NavbarProps) {
   const logoutUser = async () => {
     await signOut({ callbackUrl: "/" });
   };
 
+  const { data: session, status } = useSession();
+
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
+  const [accountType, setAccountType] = useState("");
 
   const handleMenuItemClick = async (item: string) => {
     if (window.location.pathname === "/account")
@@ -47,6 +51,31 @@ export default function Navbar({
   };
 
   const menuItems = ["Dashboard", "Application Form"];
+
+  useEffect(() => {
+    const fetchAccountType = async () => {
+      try {
+        const response = await fetch("/api/check-account-type", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email: userEmail }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch account type");
+        }
+
+        const data = await response.json();
+        setAccountType(data.accountType);
+      } catch (error) {
+        // alert("Unauthorized access");
+      }
+    };
+
+    fetchAccountType();
+  }, []);
 
   return (
     <NextUINavbar onMenuOpenChange={setIsMenuOpen}>
@@ -59,7 +88,7 @@ export default function Navbar({
         <NavbarBrand>
           <Image src={TDLogo} alt="TD Logo" width={256} height={64} />
         </NavbarBrand>
-        
+
         <NavbarBrand>
           <p className="font-bold text-inherit">Makeups Portal</p>
         </NavbarBrand>
@@ -78,25 +107,39 @@ export default function Navbar({
             Dashboard
           </Link>
         </NavbarItem>
-        <NavbarItem
-          className={navBarPage === "Application Form" ? "isActive" : ""}
-        >
-          <Link
-            style={{
-              color: navBarPage === "Application Form" ? "blue" : "inherit",
-              fontWeight: navBarPage === "Application Form" ? "bold" : "normal",
-            }}
-            onClick={() => handleMenuItemClick("Application Form")}
-            className="cursor-pointer"
+        {/* TODO: Fix. api not getting correct email for checking account type. */}
+        {/* {accountType === "student" && ( */}
+          <NavbarItem
+            className={navBarPage === "Application Form" ? "isActive" : ""}
           >
-            Application Form
-          </Link>
-        </NavbarItem>
+            <Link
+              style={{
+                color: navBarPage === "Application Form" ? "blue" : "inherit",
+                fontWeight:
+                  navBarPage === "Application Form" ? "bold" : "normal",
+              }}
+              onClick={() => handleMenuItemClick("Application Form")}
+              className="cursor-pointer"
+            >
+              Application Form
+            </Link>
+          </NavbarItem>
+        {/* )} */}
       </NavbarContent>
 
       <NavbarContent as="div" justify="end">
         <NavbarItem>
-        <Input type="text" key="inside" labelPlacement="inside" size="sm" variant="bordered" label="Search" isClearable value={searchTerm} onValueChange={setSearchTerm}/>
+          <Input
+            type="text"
+            key="inside"
+            labelPlacement="inside"
+            size="sm"
+            variant="bordered"
+            label="Search"
+            isClearable
+            value={searchTerm}
+            onValueChange={setSearchTerm}
+          />
         </NavbarItem>
         <Dropdown placement="bottom-end">
           <DropdownTrigger>
@@ -105,9 +148,9 @@ export default function Navbar({
               as="button"
               className="transition-transform"
               color="secondary"
-              name={session?.user?.name[0]}
+              name={session?.user?.name?.[0] ?? ""}
               size="sm"
-              src={session?.user?.image}
+              src={session?.user?.image ?? ""}
             />
           </DropdownTrigger>
           <DropdownMenu aria-label="Profile Actions" variant="flat">

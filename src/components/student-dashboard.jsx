@@ -7,15 +7,36 @@ import {
   TableRow,
   TableCell,
   Pagination,
+  Button,
+  ButtonGroup,
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  useDisclosure,
+  RadioGroup,
+  Radio,
+  Tabs,
+  Tab,
+  Card,
+  CardBody,
 } from "@nextui-org/react";
-import { Button } from "@nextui-org/react";
+
+import Image from "next/image";
+
 import { useSession } from "next-auth/react";
-import { Tabs, Tab } from "@nextui-org/react";
 
 const StudentDashboard = ({ searchTerm }) => {
   const { data: session } = useSession();
   const [makeupRequests, setMakeupRequests] = useState([]);
   const [activeTab, setActiveTab] = useState("Pending");
+
+  // Modal
+  const { isOpen, onOpen, onOpenChange } = useDisclosure();
+  const [scrollBehavior, setScrollBehavior] = React.useState("inside");
+  const [modalData, setModalData] = React.useState(null);
+  const [attachments, setAttachments] = React.useState([]);
 
   async function getMyRequests(st) {
     try {
@@ -24,7 +45,11 @@ const StudentDashboard = ({ searchTerm }) => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email: session?.user?.email, session: session, status: st }),
+        body: JSON.stringify({
+          email: session?.user?.email,
+          session: session,
+          status: st,
+        }),
       });
 
       if (!response.ok) {
@@ -39,17 +64,17 @@ const StudentDashboard = ({ searchTerm }) => {
       });
       setMakeupRequests(sortedData);
     } catch (error) {
-      // alert("Failed to fetch makeup requests");
+      alert("Failed to fetch your makeup requests, please try again. If issue persists, contact TimeTable Division.");
     }
   }
 
   useEffect(() => {
-    document.title = "Student Dashboard";
+    document.title = "Student Dashboard | Makeups Portal";
 
-    if (session) {
-      getMyRequests(session?.user?.email);
+    if (session && activeTab === "Pending") {
+      getMyRequests("Pending");
     }
-  }, [session]);
+  }, [session, activeTab]);
 
   function formatDateTime(dateTimeString) {
     const date = new Date(dateTimeString);
@@ -63,6 +88,38 @@ const StudentDashboard = ({ searchTerm }) => {
     };
     return date.toLocaleString("en-GB", options);
   }
+
+  async function fetchAttachments(oid) {
+    try {
+      const response = await fetch("/api/fetch-attachments", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ id: oid, session: session }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch attachments");
+      }
+
+      const data = await response.json();
+      setAttachments(data);
+    } catch (error) {
+      alert(error.message);
+    }
+  }
+
+  const openAttachment = (attachment) => {
+    const byteCharacters = atob(attachment.data);
+    const byteNumbers = new Array(byteCharacters.length)
+      .fill(0)
+      .map((_, i) => byteCharacters.charCodeAt(i));
+    const byteArray = new Uint8Array(byteNumbers);
+    const blob = new Blob([byteArray], { type: attachment.mimeType });
+    const url = URL.createObjectURL(blob);
+    window.open(url, "_blank");
+  };
 
   // Pagination
   const [page, setPage] = useState(1);
@@ -86,10 +143,12 @@ const StudentDashboard = ({ searchTerm }) => {
   const pages = Math.ceil(filteredRequests.length / rowsPerPage);
 
   return (
-    <div>
+    <div className="flex flex-col items-center h-screen">
       <h1 className="font-semibold my-4 italic text-center">
         {session?.user?.name}'s Student Dashboard
       </h1>
+
+      <p className="italic font-sm">Click a row to open deatailed view</p>
 
       <Tabs
         className="flex items-center my-6 justify-center"
@@ -123,18 +182,30 @@ const StudentDashboard = ({ searchTerm }) => {
         }}
       >
         <TableHeader className="items-center justify-center flex">
-          <TableColumn title="Name" className="text-center" />
-          <TableColumn title="ID Number" className="text-center" />
-          <TableColumn title="Course Code" className="text-center" />
-          <TableColumn title="Evaluative Component" className="text-center" />
-          <TableColumn title="Reason" className="text-center" />
-          <TableColumn title="Submitted At" className="text-center" />
-          <TableColumn title="Attachments" className="text-center" />
-          <TableColumn title="Status" className="text-center" />
+          <TableColumn className="text-center">Name</TableColumn>
+          <TableColumn className="text-center">ID Number</TableColumn>
+          <TableColumn className="text-center">Course Code</TableColumn>
+          <TableColumn className="text-center">
+            Evaluative Component
+          </TableColumn>
+          <TableColumn className="text-center">Reason</TableColumn>
+          <TableColumn className="text-center">Submitted At</TableColumn>
+          <TableColumn className="text-center">Status</TableColumn>
         </TableHeader>
-        <TableBody items={paginatedRequests} emptyContent={"No rows to display."}>
+        <TableBody
+          items={paginatedRequests}
+          emptyContent={"No rows to display."}
+        >
           {paginatedRequests.map((request, index) => (
-            <TableRow key={index}>
+            <TableRow
+              key={index}
+              className=" hover:bg-gray-100 hover:cursor-pointer hover:shadow-sm hover:delay-[150]"
+              onClick={() => {
+                setModalData(request);
+                onOpen();
+                fetchAttachments(request._id);
+              }}
+            >
               <TableCell className="text-center">{request.name}</TableCell>
               <TableCell className="text-center">{request.idNumber}</TableCell>
               <TableCell className="text-center">
@@ -147,19 +218,120 @@ const StudentDashboard = ({ searchTerm }) => {
                 {request.reason.length > 20
                   ? `${request.reason.slice(0, 20)}...`
                   : request.reason}
-              </TableCell>              <TableCell className="text-center">
-                {formatDateTime(request["submission-time"])}
               </TableCell>
               <TableCell className="text-center">
-                <Button size="sm" radius="full" variant="light" color="primary">
-                  View Attachments
-                </Button>
+                {formatDateTime(request["submission-time"])}
               </TableCell>
               <TableCell className="text-center">{request.status}</TableCell>
             </TableRow>
           ))}
         </TableBody>
       </Table>
+
+      <Modal
+        isOpen={isOpen}
+        onOpenChange={onOpenChange}
+        scrollBehavior={scrollBehavior}
+        size="5xl"
+        backdrop="blur"
+      >
+        <ModalContent>
+          {(onClose) => (
+            <>
+              <ModalHeader className="flex flex-col gap-4">
+                {modalData.name}'s Makeup Request:
+              </ModalHeader>
+              <ModalBody>
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-4">
+                    <h3 className="font-semibold italic text-sm mb-0">Name:</h3>
+                    <p className="text-base mb-0">{modalData.name}</p>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <h3 className="font-semibold italic text-sm mb-0">
+                      Email:
+                    </h3>
+                    <p className="text-base mb-0">{modalData.email}</p>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <h3 className="font-semibold italic text-sm mb-0">
+                      ID Number:
+                    </h3>
+                    <p className="text-base mb-0">{modalData.idNumber}</p>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <h3 className="font-semibold italic text-sm mb-0">
+                      Course Code:
+                    </h3>
+                    <p className="text-base mb-0">{modalData.courseCode}</p>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <h3 className="font-semibold italic text-sm mb-0">
+                      Evaluative Component:
+                    </h3>
+                    <p className="text-base mb-0">{modalData.evalComponent}</p>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <h3 className="font-semibold italic text-sm mb-0">
+                      Reason for Makeup:
+                    </h3>
+                    <p className="text-base mb-0">{modalData.reason}</p>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <h3 className="font-semibold italic text-sm mb-0">
+                      Submitted On:
+                    </h3>
+                    <p className="text-base mb-0">
+                      {formatDateTime(modalData["submission-time"])}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <h3 className="font-semibold italic text-sm mb-0">
+                      Status:
+                    </h3>
+                    <p className="text-base mb-0">{modalData.status}</p>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <h3 className="font-semibold italic text-sm mb-0">
+                      Attachments:
+                    </h3>
+
+                    {Object.keys(attachments).map((key, index) => (
+                      <div
+                        onClick={() => openAttachment(attachments[key])}
+                        key={index}
+                      >
+                        <Card
+                          className="hover:cursor-pointer"
+                          onClick={() => openAttachment(attachments[key])}
+                        >
+                          <CardBody className="flex flex-row items-start">
+                            <Image
+                              src="/images/file-icon.svg"
+                              width={24}
+                              height={24}
+                              alt=""
+                            />
+                            <p className="text-sm mx-6">
+                              {key.replace("attachment-", "")}
+                            </p>
+                          </CardBody>
+                        </Card>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </ModalBody>
+
+              <ModalFooter>
+                <Button color="danger" variant="light" onPress={onClose}>
+                  Close
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
     </div>
   );
 };

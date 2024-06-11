@@ -19,6 +19,8 @@ const Dashboard = () => {
 
   const [searchTerm, setSearchTerm] = useState("");
 
+  const [gotAccType, setGotAccType] = useState(false);
+
   const fetchAccountType = async () => {
     try {
       const response = await fetch("/api/check-account-type", {
@@ -35,6 +37,8 @@ const Dashboard = () => {
 
       const data = await response.json();
       setAccountType(data.accountType);
+      setGotAccType(true);
+
     } catch (error) {
       alert("Unauthorized access")
     }
@@ -43,23 +47,23 @@ const Dashboard = () => {
   useEffect(() => {
     if (status === "unauthenticated") {
       router.replace("/");
-    } else if (status === "authenticated") {
+    } else if (status === "authenticated" && session) {
       fetchAccountType();
     }
-  }, [status, router]);
+  }, [status, router, session]);
 
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar
-        session={session}
         navBarPage={navBarPage}
         setNavBarPage={setNavBarPage}
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
+        userEmail = {session?.user?.email ?? ""}
       />
 
       <div className="flex-grow">
-        {navBarPage === "Dashboard" ? (
+        {gotAccType && navBarPage === "Dashboard" ? (
           accountType === "admin" ? (
             <AdminDashboard searchTerm={searchTerm}/>
           ) : accountType === "faculty" ? (
