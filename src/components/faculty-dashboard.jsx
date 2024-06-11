@@ -107,41 +107,15 @@ const FacultyDashboard = ({ searchTerm }) => {
     }
   }
 
-  // Helper function to get file extension from magic number
-  function getFileExtensionFromMagicNumber(magicNumber) {
-    switch (magicNumber) {
-      case "JVBERi0xLjMK": // PDF magic number
-        return "pdf";
-      case "/9j/4AAQSkZJRgAB": // JPG and JPEG magic number
-        return "jpg";
-      case "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9h": // PNG magic number
-        return "png";
-      default:
-        return null; // Unknown file type
-    }
-  }
-
   const openAttachment = (attachment) => {
-    // Convert base64 string to binary data
-    const binaryData = atob(attachment.data);
-
-    // Create a Blob object with the binary data and the correct MIME type
-    const blob = new Blob([binaryData], { type: attachment.mimeType });
-
-    // Create an object URL for the Blob object
+    const byteCharacters = atob(attachment.data);
+    const byteNumbers = new Array(byteCharacters.length)
+      .fill(0)
+      .map((_, i) => byteCharacters.charCodeAt(i));
+    const byteArray = new Uint8Array(byteNumbers);
+    const blob = new Blob([byteArray], { type: attachment.mimeType });
     const url = URL.createObjectURL(blob);
-
-    // Open the object URL in a new window or tab
     window.open(url, "_blank");
-  };
-
-  // Helper function to check if a string is a valid Base64-encoded string
-  const isValidBase64 = (str) => {
-    try {
-      return btoa(atob(str)) === str;
-    } catch (error) {
-      return false;
-    }
   };
 
   useEffect(() => {

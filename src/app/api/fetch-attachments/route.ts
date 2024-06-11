@@ -16,24 +16,17 @@ export async function POST(req: NextRequest) {
     const client = await clientPromise;
     const db = client.db("ID-makeups");
 
-    const documents = await db.collection("makeup-requests").findOne({ _id: id });
+    const document = await db.collection("makeup-requests").findOne({ _id: id });
 
-    if (!documents) return new NextResponse("Document not found", { status: 404 });
+    if (!document) return new NextResponse("Document not found", { status: 404 });
 
-    const attachments = Object.entries(documents)
-  .filter(([key, value]) => key.startsWith("attachment"))
-  .reduce((acc, [key, value]) => {
-    const trimmedKey = key.replace("attachment-", ""); // Truncate 'attachment-' from key
-    if (value.data instanceof Binary) {
-      // If the value is a BinData object, convert it to a base64 string
-      const buffer = value.data.buffer as Buffer;
-      const base64 = buffer.toString('base64');
-      return { ...acc, [trimmedKey]: { data: base64, mimeType: value.mimeType } };
-    } else {
-      return acc;
-    }
-  }, {});
-
+    const attachments = Object.entries(document)
+      .filter(([key, value]) => value && value.data instanceof Binary)
+      .reduce((acc, [key, value]) => {
+        const buffer = value.data.buffer;
+        const base64 = buffer.toString('base64');
+        return { ...acc, [key]: { data: base64, mimeType: value.mimeType } };
+      }, {});
 
     return new NextResponse(JSON.stringify(attachments), { status: 200 });
   } catch (error) {
