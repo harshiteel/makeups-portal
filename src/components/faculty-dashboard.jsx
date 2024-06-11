@@ -119,7 +119,7 @@ const FacultyDashboard = ({ searchTerm }) => {
   };
 
   useEffect(() => {
-    document.title = "Faculty Dashboard";
+    document.title = "Faculty Dashboard | Makeups Portal";
     const fetchDataByTab = async () => {
       if (session?.user?.email) {
         await getFacultyCourseCode(session.user.email);

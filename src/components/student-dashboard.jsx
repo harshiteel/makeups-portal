@@ -64,17 +64,17 @@ const StudentDashboard = ({ searchTerm }) => {
       });
       setMakeupRequests(sortedData);
     } catch (error) {
-      // alert("Failed to fetch makeup requests");
+      alert("Failed to fetch your makeup requests, please try again. If issue persists, contact TimeTable Division.");
     }
   }
 
   useEffect(() => {
-    document.title = "Student Dashboard";
+    document.title = "Student Dashboard | Makeups Portal";
 
-    if (session) {
-      getMyRequests(session?.user?.email);
+    if (session && activeTab === "Pending") {
+      getMyRequests("Pending");
     }
-  }, [session]);
+  }, [session, activeTab]);
 
   function formatDateTime(dateTimeString) {
     const date = new Date(dateTimeString);

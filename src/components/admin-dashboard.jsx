@@ -59,7 +59,7 @@ const AdminDashboard = ({ searchTerm }) => {
   }
 
   useEffect(() => {
-    document.title = "Admin Dashboard";
+    document.title = "Admin Dashboard | Makeups Portal";
     if (session) {
       fetchData(activeTab);
     }
