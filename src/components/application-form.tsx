@@ -31,28 +31,28 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ user, email }) => {
       "image/png",
       "application/pdf",
     ];
-    const oversizedFiles: File[] = [];
     const validFiles: File[] = [];
+    let totalSize = attachments.reduce((sum, file) => sum + file.size, 0);
 
     acceptedFiles.forEach((file) => {
-      if (file.size > 5 * 1024 * 1024) {
-        oversizedFiles.push(file);
-      } else if (allowedTypes.includes(file.type)) {
-        validFiles.push(file);
+      if (allowedTypes.includes(file.type)) {
+        totalSize += file.size;
+        if (totalSize <= 15 * 1024 * 1024) {
+          validFiles.push(file);
+        } else {
+          totalSize -= file.size;
+          setErrorMsg("Total attachments size cannot exceed 15MB.");
+        }
       }
     });
 
-    if (oversizedFiles.length > 0) {
-      setErrorMsg("Please compress attachments exceeding 5MB and reupload.");
-    }
-
     if (validFiles.length > 0) {
       setAttachments((prevAttachments) => [...prevAttachments, ...validFiles]);
+      setErrorMsg(""); // Clear any previous error messages
     }
   };
 
   const { getRootProps, getInputProps } = useDropzone({
-    maxSize: 5 * 1024 * 1024, // 5MB in bytes
     onDrop: (acceptedFiles) => handleImageDrop(acceptedFiles),
   });
 
@@ -61,6 +61,15 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ user, email }) => {
 
     if (!idNumber || !courseCode || !evalComponent || !reason) {
       setErrorMsg("Please fill out all required fields.");
+      return;
+    }
+
+    const totalAttachmentsSize = attachments.reduce(
+      (sum, file) => sum + file.size,
+      0
+    );
+    if (totalAttachmentsSize > 15 * 1024 * 1024) {
+      setErrorMsg("Total attachments size cannot exceed 15MB.");
       return;
     }
 
@@ -89,8 +98,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ user, email }) => {
         throw new Error(`HTTP error! status: ${response.status}`);
       } else {
         alert(
-          JSON.stringify(response)
-          // "Your Makeup request has been successfully submitted to your course IC. Please keep checking your dashboard for updates."
+          "Your Makeup request has been successfully submitted to your course IC. Please keep checking your dashboard for updates."
         );
         window.location.reload();
       }
@@ -144,9 +152,6 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ user, email }) => {
           <h1 className="text-xl md:text-2xl font-bold mb-4 text-center">
             Makeup Exam Application
           </h1>
-          {errorMsg && (
-            <p className="text-red-500 mb-4 text-center">{errorMsg}</p>
-          )}
 
           <form onSubmit={handleSubmit} className="space-y-8">
             <div className="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-4 mb-4">
@@ -223,11 +228,12 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ user, email }) => {
             >
               <input {...getInputProps()} />
               <p className="font-semibold">
-                Attach your prescriptions, etc here (max 5MB each){" "}
+                Attach your prescriptions, etc here (Allowed File Types: PDF,
+                PNG, JPG, JPEG)
               </p>
               <p className="text-red-500">
                 <i className="text-small">
-                  (Allowed File Types: PDF, PNG, JPG, JPEG)
+                  (Total size of all files must be under 15MB)
                 </i>
               </p>
             </div>
@@ -268,12 +274,20 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ user, email }) => {
               })}
             </div>
 
-            <button
-              type="submit"
-              className="w-full bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 focus:outline-none focus:ring focus:ring-blue-400"
-            >
-              Submit Application
-            </button>
+            <div className="flex justify-center flex-col">
+              {errorMsg && (
+                <p className="text-red-500 mb-4 text-center">{errorMsg}</p>
+              )}
+              <button
+                type="submit"
+                className={`bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline ${
+                  errorMsg ? "opacity-50 cursor-not-allowed" : ""
+                }`}
+                disabled={!!errorMsg}
+              >
+                Submit Application
+              </button>
+            </div>
           </form>
         </div>
       </div>

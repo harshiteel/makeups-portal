@@ -386,7 +386,9 @@ const FacultyDashboard = ({ searchTerm }) => {
                               height={24}
                               alt=""
                             />
-                            <p className="text-sm mx-6">{key}</p>
+                            <p className="text-sm mx-6">
+                              {key.replace("attachment-", "")}
+                            </p>
                           </CardBody>
                         </Card>
                       </div>
