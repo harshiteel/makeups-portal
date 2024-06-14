@@ -64,7 +64,9 @@ const StudentDashboard = ({ searchTerm }) => {
       });
       setMakeupRequests(sortedData);
     } catch (error) {
-      alert("Failed to fetch your makeup requests, please try again. If issue persists, contact TimeTable Division.");
+      alert(
+        "Failed to fetch your makeup requests, please try again. If issue persists, contact TimeTable Division."
+      );
     }
   }
 
@@ -320,6 +322,15 @@ const StudentDashboard = ({ searchTerm }) => {
                       </div>
                     ))}
                   </div>
+
+                  {modalData.facRemarks && (
+                    <div className="flex items-center gap-4">
+                      <h3 className="font-semibold italic text-sm mb-0">
+                        Faculty Remarks:
+                      </h3>
+                      <p className="text-base mb-0">{modalData.facRemarks}</p>
+                    </div>
+                  )}
                 </div>
               </ModalBody>
 

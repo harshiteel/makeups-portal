@@ -311,6 +311,15 @@ const AdminDashboard = ({ searchTerm }) => {
                 </div>
               </ModalBody>
 
+              {modalData.facRemarks && (
+                <div className="flex items-center gap-4">
+                  <h3 className="font-semibold italic text-sm mb-0">
+                    Faculty Remarks:
+                  </h3>
+                  <p className="text-base mb-0">{modalData.facRemarks}</p>
+                </div>
+              )}
+
               <ModalFooter>
                 <Button color="danger" variant="light" onPress={onClose}>
                   Close

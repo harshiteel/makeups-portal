@@ -21,6 +21,8 @@ import {
   Tab,
   Card,
   CardBody,
+  Textarea,
+  Divider
 } from "@nextui-org/react";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
@@ -36,6 +38,7 @@ const FacultyDashboard = ({ searchTerm }) => {
   const [scrollBehavior, setScrollBehavior] = React.useState("inside");
   const [modalData, setModalData] = React.useState(null);
   const [attachments, setAttachments] = React.useState([]);
+  const [facRemarks, setFacRemarks] = React.useState("");
 
   async function getFacultyCourseCode(fE) {
     try {
@@ -152,7 +155,12 @@ const FacultyDashboard = ({ searchTerm }) => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ id: id, status: status, session: session }),
+        body: JSON.stringify({
+          id: id,
+          status: status,
+          session: session,
+          facRemarks: facRemarks,
+        }),
       });
 
       console.log("aa ", id, status, session);
@@ -390,7 +398,27 @@ const FacultyDashboard = ({ searchTerm }) => {
                       </div>
                     ))}
                   </div>
+
+                  {modalData.facRemarks && (
+                    <div className="flex items-center gap-4">
+                      <h3 className="font-semibold italic text-sm mb-0">
+                        Faculty Remarks:
+                      </h3>
+                      <p className="text-base mb-0">{modalData.facRemarks}</p>
+                    </div>
+                  )}
                 </div>
+
+                <Divider className="my-4" />
+
+                <div className="flex w-full flex-wrap md:flex-nowrap mb-6 md:mb-0 gap-4">
+                  <Textarea
+                    label="Remarks: "
+                    placeholder="Please leave any remarks (optional) for the student here."
+                    onValueChange={(value) => setFacRemarks(value)}
+                  />
+                </div>
+
                 <ButtonGroup>
                   <Button
                     size="sm"

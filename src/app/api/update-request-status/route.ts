@@ -20,7 +20,7 @@ export async function PATCH(req: NextRequest) {
 
     const result = await db.collection("makeup-requests").updateOne(
       { _id: new ObjectId(body.id) },
-      { $set: { status: body.status } }
+      { $set: { status: body.status, facRemarks: body.facRemarks } }
     );
 
     if (result.matchedCount === 0) {
