@@ -23,7 +23,7 @@ const Dashboard = () => {
 
   const fetchAccountType = async () => {
     try {
-      const response = await fetch("/api/check-account-type", {
+      const response = await fetch("/makeups/api/check-account-type", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -40,7 +40,7 @@ const StudentDashboard = ({ searchTerm }) => {
 
   async function getMyRequests(st) {
     try {
-      const response = await fetch("/api/fetch-my-requests", {
+      const response = await fetch("/makeups/api/fetch-my-requests", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -64,7 +64,9 @@ const StudentDashboard = ({ searchTerm }) => {
       });
       setMakeupRequests(sortedData);
     } catch (error) {
-      alert("Failed to fetch your makeup requests, please try again. If issue persists, contact TimeTable Division.");
+      alert(
+        "Failed to fetch your makeup requests, please try again. If issue persists, contact TimeTable Division."
+      );
     }
   }
 
@@ -91,7 +93,7 @@ const StudentDashboard = ({ searchTerm }) => {
 
   async function fetchAttachments(oid) {
     try {
-      const response = await fetch("/api/fetch-attachments", {
+      const response = await fetch("/makeups/api/fetch-attachments", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -307,7 +309,7 @@ const StudentDashboard = ({ searchTerm }) => {
                         >
                           <CardBody className="flex flex-row items-start">
                             <Image
-                              src="/images/file-icon.svg"
+                              src="/makeups/images/file-icon.svg"
                               width={24}
                               height={24}
                               alt=""
@@ -320,6 +322,15 @@ const StudentDashboard = ({ searchTerm }) => {
                       </div>
                     ))}
                   </div>
+
+                  {modalData.facRemarks && (
+                    <div className="flex items-center gap-4">
+                      <h3 className="font-semibold italic text-sm mb-0">
+                        Faculty Remarks:
+                      </h3>
+                      <p className="text-base mb-0">{modalData.facRemarks}</p>
+                    </div>
+                  )}
                 </div>
               </ModalBody>
 

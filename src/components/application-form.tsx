@@ -89,7 +89,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ user, email }) => {
       formData.append("submission-time", submissionTime);
       formData.append("status", "Pending");
 
-      const response = await fetch("/api/submit-makeup-request", {
+      const response = await fetch("/makeups/api/submit-makeup-request", {
         method: "POST",
         body: formData,
       });
@@ -111,7 +111,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ user, email }) => {
 
   const getCourseCodes = async () => {
     try {
-      const response = await fetch("/api/get-all-course-codes", {
+      const response = await fetch("/makeups/api/get-all-course-codes", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -224,7 +224,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ user, email }) => {
 
             <div
               {...getRootProps()}
-              className="flex flex-col items-center space-y-8 py-4 md:space-y-0 md:space-x-4 mb-4 border border-dashed border-gray-300 rounded-md"
+              className="cursor-pointer flex flex-col items-center space-y-8 py-4 md:space-y-0 md:space-x-4 mb-4 border border-dashed border-gray-300 rounded-md"
             >
               <input {...getInputProps()} />
               <p className="font-semibold">
@@ -248,7 +248,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ user, email }) => {
                     <Card>
                       <CardBody className="flex flex-row items-start justify-center my-auto">
                         <Image
-                          src="/images/file-icon.svg"
+                          src="/makeups/images/file-icon.svg"
                           width={24}
                           height={24}
                           alt=""

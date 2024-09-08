@@ -43,7 +43,7 @@ const AccountSettings = () => {
   const checkIfInMailingList = async (email) => {
     try {
       const res = await fetch(
-        `/api/mailing-list?email=${encodeURIComponent(email)}`
+        `/makeups/api/mailing-list?email=${encodeURIComponent(email)}`
       );
       const data = await res.json();
       setIsSelected(data.message === "yes send mails");
@@ -71,7 +71,7 @@ const AccountSettings = () => {
       if (!isSelected) {
         // If user was in the exclude mailing list, send a delete request
         const deleteRes = await fetch(
-          `/api/mailing-list?email=${encodeURIComponent(email)}`,
+          `/makeups/api/mailing-list?email=${encodeURIComponent(email)}`,
           {
             method: "DELETE",
           }
@@ -81,7 +81,7 @@ const AccountSettings = () => {
 
       } else {
         // If user was not in the exclude mailing list, send a post request
-        const postRes = await fetch("/api/mailing-list", {
+        const postRes = await fetch("/makeups/api/mailing-list", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
