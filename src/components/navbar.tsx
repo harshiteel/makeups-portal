@@ -36,7 +36,7 @@ export default function Navbar({
   userEmail
 }: NavbarProps) {
   const logoutUser = async () => {
-    await signOut({ callbackUrl: "/" });
+    await signOut({ callbackUrl: "/makeups" });
   };
 
   const { data: session, status } = useSession();
@@ -45,8 +45,8 @@ export default function Navbar({
   const [accountType, setAccountType] = useState("");
 
   const handleMenuItemClick = async (item: string) => {
-    if (window.location.pathname === "/account")
-      await window.location.replace("/dashboard");
+    if (window.location.pathname === "/makeups/account")
+      await window.location.replace("/makeups/dashboard");
     setNavBarPage(item);
   };
 
@@ -55,7 +55,7 @@ export default function Navbar({
   useEffect(() => {
     const fetchAccountType = async () => {
       try {
-        const response = await fetch("/api/check-account-type", {
+        const response = await fetch("/makeups/api/check-account-type", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -78,7 +78,7 @@ export default function Navbar({
   }, []);
 
   return (
-    <NextUINavbar onMenuOpenChange={setIsMenuOpen}>
+    <NextUINavbar onMenuOpenChange={setIsMenuOpen} className=" shadow-sm">
       <NavbarContent>
         <NavbarMenuToggle
           aria-label={isMenuOpen ? "Close menu" : "Open menu"}
@@ -86,7 +86,7 @@ export default function Navbar({
         />
 
         <NavbarBrand>
-          <Image src={TDLogo} alt="TD Logo" width={256} height={64} />
+          <Image src={TDLogo} alt="TD Logo" width={256} height={64}/>
         </NavbarBrand>
 
         <NavbarBrand>
@@ -94,7 +94,7 @@ export default function Navbar({
         </NavbarBrand>
       </NavbarContent>
 
-      <NavbarContent className="hidden sm:flex gap-4" justify="center">
+      <NavbarContent className="flex-grow flex items-center justify-end space-x-4">
         <NavbarItem className={navBarPage === "Dashboard" ? "isActive" : ""}>
           <Link
             style={{
@@ -160,7 +160,7 @@ export default function Navbar({
             </DropdownItem>
             <DropdownItem
               key="settings"
-              onClick={() => (window.location.href = "/account")}
+              onClick={() => (window.location.href = "/makeups/account")}
             >
               Account Settings
             </DropdownItem>

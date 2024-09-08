@@ -40,7 +40,7 @@ const StudentDashboard = ({ searchTerm }) => {
 
   async function getMyRequests(st) {
     try {
-      const response = await fetch("/api/fetch-my-requests", {
+      const response = await fetch("/makeups/api/fetch-my-requests", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -93,7 +93,7 @@ const StudentDashboard = ({ searchTerm }) => {
 
   async function fetchAttachments(oid) {
     try {
-      const response = await fetch("/api/fetch-attachments", {
+      const response = await fetch("/makeups/api/fetch-attachments", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -309,7 +309,7 @@ const StudentDashboard = ({ searchTerm }) => {
                         >
                           <CardBody className="flex flex-row items-start">
                             <Image
-                              src="/images/file-icon.svg"
+                              src="/makeups/images/file-icon.svg"
                               width={24}
                               height={24}
                               alt=""

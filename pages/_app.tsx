@@ -11,7 +11,7 @@ function MyApp({
   pageProps: any;
 }) {
   return (
-    <SessionProvider session={pageProps.session}>
+    <SessionProvider session={pageProps.session} basePath="/makeups/api/auth">
       <NextUIProvider>
         <Component {...pageProps} />
       </NextUIProvider>

@@ -24,6 +24,7 @@ import {
 } from "@nextui-org/react";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
+import FileIconSVG from '../../public/images/file-icon.svg'
 
 const AdminDashboard = ({ searchTerm }) => {
   const { data: session } = useSession();
@@ -37,7 +38,7 @@ const AdminDashboard = ({ searchTerm }) => {
   const [attachments, setAttachments] = React.useState([]);
 
   async function fetchData(status) {
-    const response = await fetch("/api/fetch-requests", {
+    const response = await fetch("/makeups/api/fetch-requests", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -80,7 +81,7 @@ const AdminDashboard = ({ searchTerm }) => {
 
   async function fetchAttachments(oid) {
     try {
-      const response = await fetch("/api/fetch-attachments", {
+      const response = await fetch("/makeups/api/fetch-attachments", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -295,7 +296,7 @@ const AdminDashboard = ({ searchTerm }) => {
                         >
                           <CardBody className="flex flex-row items-start">
                             <Image
-                              src="/images/file-icon.svg"
+                              src={FileIconSVG}
                               width={24}
                               height={24}
                               alt=""

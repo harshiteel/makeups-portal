@@ -5,6 +5,8 @@ import { signIn } from "next-auth/react";
 import "./globals.css";
 import { Button, Card, CardBody } from "@nextui-org/react";
 import { useState } from "react";
+import GoogleSVG from '../../public/images/google-icon-logo-svg.svg'
+import TDLogo from '../../public/images/tdlogo-01.png'
 
 export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
@@ -12,15 +14,14 @@ export default function Home() {
   const handleLogin = async (e: any) => {
     e.preventDefault();
     setIsLoading(true);
-    const res = await signIn("google", { callbackUrl: "/dashboard" });
-    // console.log("t", res);
+    const res = await signIn("google", { callbackUrl: "/makeups/dashboard" });
   };
 
   return (
     <div className="min-h-screen bg-gray-100 text-black flex-col">
       <div className="w-64 h-64 relative mr-4 left-8">
         <Image
-          src="/images/tdlogo-01.png"
+          src={TDLogo}
           alt="TD Logo"
           width={256}
           height={64}
@@ -46,11 +47,11 @@ export default function Home() {
             >
               {!isLoading && (
                 <Image
-                  src="/images/google-icon-logo-svg.svg"
+                  src={GoogleSVG}
                   width={32}
                   height={32}
                   alt="G"
-                ></Image>
+                />
               )}
               <h1 className=" font-semibold text-center">Login with Google</h1>
             </Button>

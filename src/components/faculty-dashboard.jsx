@@ -42,7 +42,7 @@ const FacultyDashboard = ({ searchTerm }) => {
 
   async function getFacultyCourseCode(fE) {
     try {
-      const response = await fetch("/api/fetch-faculty-course-code", {
+      const response = await fetch("/makeups/api/fetch-faculty-course-code", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -61,7 +61,7 @@ const FacultyDashboard = ({ searchTerm }) => {
 
   async function fetchData(courseCode, status) {
     try {
-      const response = await fetch("/api/fetch-requests", {
+      const response = await fetch("/makeups/api/fetch-requests", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -91,7 +91,7 @@ const FacultyDashboard = ({ searchTerm }) => {
 
   async function fetchAttachments(oid) {
     try {
-      const response = await fetch("/api/fetch-attachments", {
+      const response = await fetch("/makeups/api/fetch-attachments", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -150,7 +150,7 @@ const FacultyDashboard = ({ searchTerm }) => {
 
   async function updateRequestStatus(id, status) {
     try {
-      const response = await fetch("/api/update-request-status", {
+      const response = await fetch("/makeups/api/update-request-status", {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -385,7 +385,7 @@ const FacultyDashboard = ({ searchTerm }) => {
                         >
                           <CardBody className="flex flex-row items-start">
                             <Image
-                              src="/images/file-icon.svg"
+                              src="/makeups/images/file-icon.svg"
                               width={24}
                               height={24}
                               alt=""
