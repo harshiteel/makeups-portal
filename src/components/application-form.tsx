@@ -19,10 +19,12 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ user, email }) => {
   const [attachments, setAttachments] = useState<File[]>([]);
   const [errorMsg, setErrorMsg] = useState("");
   const [courseCodes, setCourseCodes] = useState<string[]>([]);
-  const [uploadProgress, setUploadProgress] = useState<Record<string, number>>(
-    {}
-  );
-  const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
+
+
+  const evalComponentOptions = [
+    { value: "Mid Semester Exam", label: "Mid Semester Exam" },
+    { value: "Comprehensive Exam", label: "Comprehensive Exam" }
+  ];
 
   const handleImageDrop = (acceptedFiles: File[]) => {
     const allowedTypes = [
@@ -198,15 +200,14 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ user, email }) => {
               <label htmlFor="evalComponent" className="font-semibold">
                 Evaluative Component:
               </label>
-              <input
-                required
-                type="text"
-                id="evalComponent"
-                value={evalComponent}
-                onChange={(e) => setEvalComponent(e.target.value)}
-                className="w-full md:w-1/2 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-400"
-                placeholder="Eg: Quiz 1"
-              />
+              <div className="w-full md:w-1/2">
+                <Select
+                  options={evalComponentOptions}
+                  onChange={(option) => setEvalComponent(option?.value || "")}
+                  placeholder="Select component..."
+                  required
+                />
+              </div>
             </div>
 
             <div className="flex flex-col items-center space-y-4 md:space-y-0 md:space-x-4 mb-4">

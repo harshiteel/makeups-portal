@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useEffect, useState } from "react";
 import {
   Table,
@@ -15,27 +17,29 @@ import {
   ModalBody,
   ModalFooter,
   useDisclosure,
-  RadioGroup,
-  Radio,
   Tabs,
   Tab,
   Card,
   CardBody,
   Textarea,
-  Divider
+  Divider,
 } from "@nextui-org/react";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
+import DateRangeFilter from "./date-filter";
 
 const FacultyDashboard = ({ searchTerm }) => {
   const { data: session } = useSession();
   const [makeupRequests, setMakeupRequests] = useState([]);
   const [facultyCourseCode, setFacultyCourseCode] = useState("");
   const [activeTab, setActiveTab] = useState("Pending");
+  const [dateFilter, setDateFilter] = useState({
+    startDate: null,
+    endDate: null,
+  });
 
-  // Modal
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
-  const [scrollBehavior, setScrollBehavior] = React.useState("inside");
+  const [scrollBehavior] = React.useState("inside");
   const [modalData, setModalData] = React.useState(null);
   const [attachments, setAttachments] = React.useState([]);
   const [facRemarks, setFacRemarks] = React.useState("");
@@ -133,7 +137,7 @@ const FacultyDashboard = ({ searchTerm }) => {
     };
 
     fetchDataByTab();
-  }, [session, facultyCourseCode, activeTab]);
+  }, [session, facultyCourseCode, activeTab ]);
 
   function formatDateTime(dateTimeString) {
     const date = new Date(dateTimeString);
@@ -163,8 +167,6 @@ const FacultyDashboard = ({ searchTerm }) => {
         }),
       });
 
-      console.log("aa ", id, status, session);
-
       if (!response.ok) {
         throw new Error(
           "Failed to update request status, " + JSON.stringify(response)
@@ -180,20 +182,53 @@ const FacultyDashboard = ({ searchTerm }) => {
     }
   }
 
+  const handleDateFilterChange = (filter) => {
+    setDateFilter(filter);
+    // Reset to first page when filter changes
+    setPage(1);
+  };
+
   // Pagination
   const [page, setPage] = useState(1);
   const rowsPerPage = 10; // Hardcoded to 10 entries per page. TODO: User defined
 
-  const pages = Math.ceil(makeupRequests.length / rowsPerPage);
-
   const filteredRequests = React.useMemo(() => {
-    if (!searchTerm) return makeupRequests;
-    return makeupRequests.filter((request) =>
-      Object.values(request).some((value) =>
-        value.toString().toLowerCase().includes(searchTerm.toLowerCase())
-      )
-    );
-  }, [searchTerm, makeupRequests]);
+    let filtered = makeupRequests;
+
+    // Text search filter
+    if (searchTerm) {
+      filtered = filtered.filter((request) =>
+        Object.values(request).some((value) =>
+          value.toString().toLowerCase().includes(searchTerm.toLowerCase())
+        )
+      );
+    }
+
+    // Date filter
+    if (dateFilter.startDate || dateFilter.endDate) {
+      filtered = filtered.filter((request) => {
+        const submissionDate = new Date(request["submission-time"]);
+
+        // Check if submission date is after start date (if provided)
+        const afterStartDate = dateFilter.startDate
+          ? submissionDate >= dateFilter.startDate
+          : true;
+
+        // Check if submission date is before end date (if provided)
+        // Add one day to end date to include the entire end date
+        const beforeEndDate = dateFilter.endDate
+          ? submissionDate <=
+            new Date(dateFilter.endDate.setHours(23, 59, 59, 999))
+          : true;
+
+        return afterStartDate && beforeEndDate;
+      });
+    }
+
+    return filtered;
+  }, [searchTerm, makeupRequests, dateFilter]);
+
+  const pages = Math.ceil(filteredRequests.length / rowsPerPage);
 
   const paginatedRequests = React.useMemo(() => {
     const start = (page - 1) * rowsPerPage;
@@ -204,10 +239,10 @@ const FacultyDashboard = ({ searchTerm }) => {
   return (
     <div className="flex flex-col items-center h-screen">
       <h1 className="font-semibold my-4 italic text-center">
-        {session?.user?.name}'s Faculty Dashboard
+        {session?.user?.name}&apos;s Faculty Dashboard
       </h1>
 
-      <p className="italic font-sm">Click a row to open deatailed view</p>
+      <p className="italic font-sm">Click a row to open detailed view</p>
 
       <Tabs
         className="flex items-center my-6 justify-center"
@@ -222,6 +257,16 @@ const FacultyDashboard = ({ searchTerm }) => {
         <Tab key="Denied" title="Rejected Requests" />
       </Tabs>
 
+      {/* Date filter component */}
+      <div className="w-full max-w-7xl px-4">
+        <DateRangeFilter onFilterChange={handleDateFilterChange} />
+      </div>
+      {filteredRequests.length > 0 && (
+        <div className="text-sm text-gray-500 my-2">
+          Showing {filteredRequests.length} {filteredRequests.length === 1 ? 'request' : 'requests'}
+          {(dateFilter.startDate || dateFilter.endDate) && ' with date filter applied'}
+        </div>
+      )}
       <Table
         bottomContent={
           <div className="flex w-full justify-center">
@@ -258,7 +303,7 @@ const FacultyDashboard = ({ searchTerm }) => {
           {paginatedRequests.map((request, index) => (
             <TableRow
               key={index}
-              className=" hover:bg-gray-100 hover:cursor-pointer hover:shadow-sm hover:delay-[150]"
+              className="hover:bg-gray-100 hover:cursor-pointer hover:shadow-sm hover:delay-[150]"
               onClick={() => {
                 setModalData(request);
                 onOpen();
@@ -323,7 +368,7 @@ const FacultyDashboard = ({ searchTerm }) => {
           {(onClose) => (
             <>
               <ModalHeader className="flex flex-col gap-4">
-                {modalData.name}'s Makeup Request:
+                {modalData.name}&apos;s Makeup Request:
               </ModalHeader>
               <ModalBody>
                 <div className="flex flex-col gap-2">
@@ -425,7 +470,7 @@ const FacultyDashboard = ({ searchTerm }) => {
                     radius="md"
                     color="success"
                     onClick={() => {
-                      onClose;
+                      onClose();
                       updateRequestStatus(modalData._id, "Accepted");
                     }}
                     isDisabled={modalData.status === "Accepted"}
@@ -437,7 +482,7 @@ const FacultyDashboard = ({ searchTerm }) => {
                     radius="md"
                     color="danger"
                     onClick={() => {
-                      onClose;
+                      onClose();
                       updateRequestStatus(modalData._id, "Denied");
                     }}
                     isDisabled={modalData.status === "Denied"}

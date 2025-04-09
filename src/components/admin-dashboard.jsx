@@ -8,15 +8,12 @@ import {
   TableCell,
   Pagination,
   Button,
-  ButtonGroup,
   Modal,
   ModalContent,
   ModalHeader,
   ModalBody,
   ModalFooter,
   useDisclosure,
-  RadioGroup,
-  Radio,
   Tabs,
   Tab,
   Card,
@@ -25,11 +22,12 @@ import {
 import { useSession } from "next-auth/react";
 import Image from "next/image";
 import FileIconSVG from '../../public/images/file-icon.svg'
-
+import DateRangeFilter from "@/components/date-filter";
 const AdminDashboard = ({ searchTerm }) => {
   const { data: session } = useSession();
   const [makeupRequests, setMakeupRequests] = useState([]);
   const [activeTab, setActiveTab] = useState("Pending");
+  const [dateFilter, setDateFilter] = useState({ startDate: null, endDate: null });
 
   // Modal
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
@@ -111,18 +109,42 @@ const AdminDashboard = ({ searchTerm }) => {
     window.open(url, "_blank");
   };
 
-  // Pagination
+  const handleDateFilterChange = (filterValues) => {
+    setDateFilter(filterValues);
+    setPage(1);
+  };
+
   const [page, setPage] = useState(1);
-  const rowsPerPage = 10; // Hardcoded to 10 entries per page. TODO: User defined
+  const rowsPerPage = 10; 
 
   const filteredRequests = React.useMemo(() => {
-    if (!searchTerm) return makeupRequests;
-    return makeupRequests.filter((request) =>
-      Object.values(request).some((value) =>
-        value.toString().toLowerCase().includes(searchTerm.toLowerCase())
-      )
-    );
-  }, [searchTerm, makeupRequests]);
+    let filtered = makeupRequests;
+    
+    if (searchTerm) {
+      filtered = filtered.filter((request) =>
+        Object.values(request).some((value) =>
+          value.toString().toLowerCase().includes(searchTerm.toLowerCase())
+        )
+      );
+    }
+    
+    if (dateFilter.startDate || dateFilter.endDate) {
+      filtered = filtered.filter((request) => {
+        const submissionDate = new Date(request["submission-time"]);
+        
+        const afterStartDate = dateFilter.startDate 
+          ? submissionDate >= dateFilter.startDate
+          : true;
+        const beforeEndDate = dateFilter.endDate
+          ? submissionDate <= new Date(dateFilter.endDate.setHours(23, 59, 59, 999))
+          : true;
+          
+        return afterStartDate && beforeEndDate;
+      });
+    }
+    
+    return filtered;
+  }, [searchTerm, makeupRequests, dateFilter]);
 
   const paginatedRequests = React.useMemo(() => {
     const start = (page - 1) * rowsPerPage;
@@ -135,10 +157,9 @@ const AdminDashboard = ({ searchTerm }) => {
   return (
     <div className="flex flex-col items-center h-screen">
       <h1 className="font-semibold my-4 italic text-center">
-        {session?.user?.name}'s Admin Dashboard
+        {session?.user?.name}&apos;s Admin Dashboard
       </h1>
-
-      <p className="italic font-sm">Click a row to open deatailed view</p>
+      <p className="italic font-sm">Click a row to open detailed view</p>
 
       <Tabs
         className="flex items-center my-6 justify-center"
@@ -146,12 +167,23 @@ const AdminDashboard = ({ searchTerm }) => {
         onSelectionChange={(key) => {
           setActiveTab(key);
           fetchData(key);
+          setDateFilter({ startDate: null, endDate: null });
         }}
       >
         <Tab key="Pending" title="Pending Requests" />
         <Tab key="Accepted" title="Accepted Requests" />
         <Tab key="Denied" title="Rejected Requests" />
       </Tabs>
+      <div className="w-full max-w-6xl px-4 flex items-center justify-center">
+        <DateRangeFilter onFilterChange={handleDateFilterChange} />
+      </div>
+      {filteredRequests.length > 0 && (
+        <div className="text-sm text-gray-500 my-2">
+          Showing {filteredRequests.length} {filteredRequests.length === 1 ? 'request' : 'requests'}
+          {(dateFilter.startDate || dateFilter.endDate) && ' with date filter applied'}
+        </div>
+      )}
+      
       <Table
         bottomContent={
           <div className="flex w-full justify-center">
@@ -228,7 +260,7 @@ const AdminDashboard = ({ searchTerm }) => {
           {(onClose) => (
             <>
               <ModalHeader className="flex flex-col gap-4">
-                {modalData.name}'s Makeup Request:
+                {modalData.name}&apos;s Makeup Request:
               </ModalHeader>
               <ModalBody>
                 <div className="flex flex-col gap-2">
