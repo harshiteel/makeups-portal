@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useEffect, useState } from "react";
 import {
   Table,
@@ -18,16 +20,25 @@ import {
   Tab,
   Card,
   CardBody,
+  Chip,
 } from "@nextui-org/react";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
-import FileIconSVG from '../../public/images/file-icon.svg'
+import Select from "react-select";
+import FileIconSVG from "../../public/images/file-icon.svg";
 import DateRangeFilter from "@/components/date-filter";
+
 const AdminDashboard = ({ searchTerm }) => {
   const { data: session } = useSession();
   const [makeupRequests, setMakeupRequests] = useState([]);
   const [activeTab, setActiveTab] = useState("Pending");
-  const [dateFilter, setDateFilter] = useState({ startDate: null, endDate: null });
+  const [dateFilter, setDateFilter] = useState({
+    startDate: null,
+    endDate: null,
+  });
+  // Changed from string to array to support multiple course codes
+  const [courseCodeFilters, setCourseCodeFilters] = useState([]);
+  const [courseCodes, setCourseCodes] = useState([]);
 
   // Modal
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
@@ -57,10 +68,31 @@ const AdminDashboard = ({ searchTerm }) => {
     setMakeupRequests(sortedData);
   }
 
+  const getCourseCodes = async () => {
+    try {
+      const response = await fetch("/makeups/api/get-all-course-codes", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setCourseCodes(data.courseCodes);
+    } catch (error) {
+      alert("Error fetching course codes");
+    }
+  };
+
   useEffect(() => {
     document.title = "Admin Dashboard | Makeups Portal";
     if (session) {
       fetchData(activeTab);
+      getCourseCodes();
     }
   }, [session]);
 
@@ -114,12 +146,26 @@ const AdminDashboard = ({ searchTerm }) => {
     setPage(1);
   };
 
+  // Updated to handle multiple selections
+  const handleCourseCodeFilterChange = (selectedOptions) => {
+    const selectedValues = selectedOptions
+      ? selectedOptions.map((option) => option.value)
+      : [];
+    setCourseCodeFilters(selectedValues);
+    setPage(1);
+  };
+
+  const courseOptions = courseCodes.map((cc) => ({
+    value: cc,
+    label: cc,
+  }));
+
   const [page, setPage] = useState(1);
-  const rowsPerPage = 10; 
+  const rowsPerPage = 10;
 
   const filteredRequests = React.useMemo(() => {
     let filtered = makeupRequests;
-    
+
     if (searchTerm) {
       filtered = filtered.filter((request) =>
         Object.values(request).some((value) =>
@@ -127,24 +173,34 @@ const AdminDashboard = ({ searchTerm }) => {
         )
       );
     }
-    
+
     if (dateFilter.startDate || dateFilter.endDate) {
       filtered = filtered.filter((request) => {
         const submissionDate = new Date(request["submission-time"]);
-        
-        const afterStartDate = dateFilter.startDate 
+
+        const afterStartDate = dateFilter.startDate
           ? submissionDate >= dateFilter.startDate
           : true;
         const beforeEndDate = dateFilter.endDate
-          ? submissionDate <= new Date(dateFilter.endDate.setHours(23, 59, 59, 999))
+          ? submissionDate <=
+            new Date(dateFilter.endDate.setHours(23, 59, 59, 999))
           : true;
-          
+
         return afterStartDate && beforeEndDate;
       });
     }
-    
+
+    // Updated to filter by multiple course codes
+    if (courseCodeFilters.length > 0) {
+      filtered = filtered.filter((request) =>
+        courseCodeFilters.some((code) =>
+          request.courseCode.toLowerCase().includes(code.toLowerCase())
+        )
+      );
+    }
+
     return filtered;
-  }, [searchTerm, makeupRequests, dateFilter]);
+  }, [searchTerm, makeupRequests, dateFilter, courseCodeFilters]);
 
   const paginatedRequests = React.useMemo(() => {
     const start = (page - 1) * rowsPerPage;
@@ -168,22 +224,86 @@ const AdminDashboard = ({ searchTerm }) => {
           setActiveTab(key);
           fetchData(key);
           setDateFilter({ startDate: null, endDate: null });
+          setCourseCodeFilters([]);
         }}
       >
         <Tab key="Pending" title="Pending Requests" />
         <Tab key="Accepted" title="Accepted Requests" />
         <Tab key="Denied" title="Rejected Requests" />
       </Tabs>
-      <div className="w-full max-w-6xl px-4 flex items-center justify-center">
-        <DateRangeFilter onFilterChange={handleDateFilterChange} />
+      <div className="w-full max-w-6xl px-4 flex flex-col items-center space-y-4">
+        <div className="w-full max-w-md">
+          <DateRangeFilter onFilterChange={handleDateFilterChange} />
+        </div>
+
+        <div className="w-full max-w-md">
+          <label
+            htmlFor="courseCodeFilter"
+            className="text-sm text-gray-500 mb-1 block"
+          >
+            Filter by Course Code(s):
+          </label>
+          <Select
+            id="courseCodeFilter"
+            options={courseOptions}
+            onChange={handleCourseCodeFilterChange}
+            placeholder="Select one or more course codes..."
+            isMulti
+            isClearable
+            value={courseOptions.filter((option) =>
+              courseCodeFilters.includes(option.value)
+            )}
+          />
+        </div>
       </div>
+
       {filteredRequests.length > 0 && (
         <div className="text-sm text-gray-500 my-2">
-          Showing {filteredRequests.length} {filteredRequests.length === 1 ? 'request' : 'requests'}
-          {(dateFilter.startDate || dateFilter.endDate) && ' with date filter applied'}
+          Showing {filteredRequests.length}{" "}
+          {filteredRequests.length === 1 ? "request" : "requests"}
+          {(dateFilter.startDate ||
+            dateFilter.endDate ||
+            courseCodeFilters.length > 0) &&
+            " with filters applied"}
         </div>
       )}
-      
+
+      {/* Display selected course codes as chips */}
+      {courseCodeFilters.length > 0 && (
+        <div className="flex flex-wrap gap-2 my-2 justify-center">
+          {courseCodeFilters.map((code) => (
+            <Chip
+              key={code}
+              onClose={() => {
+                setCourseCodeFilters((prev) => prev.filter((c) => c !== code));
+              }}
+              variant="flat"
+              color="primary"
+              size="sm"
+            >
+              {code}
+            </Chip>
+          ))}
+        </div>
+      )}
+
+      {(dateFilter.startDate ||
+        dateFilter.endDate ||
+        courseCodeFilters.length > 0) && (
+        <Button
+          size="sm"
+          color="secondary"
+          variant="light"
+          className="mb-2"
+          onClick={() => {
+            setDateFilter({ startDate: null, endDate: null });
+            setCourseCodeFilters([]);
+          }}
+        >
+          Reset All Filters
+        </Button>
+      )}
+
       <Table
         bottomContent={
           <div className="flex w-full justify-center">
@@ -260,57 +380,58 @@ const AdminDashboard = ({ searchTerm }) => {
           {(onClose) => (
             <>
               <ModalHeader className="flex flex-col gap-4">
-                {modalData.name}&apos;s Makeup Request:
+                {modalData?.name}&apos;s Makeup Request:
               </ModalHeader>
               <ModalBody>
                 <div className="flex flex-col gap-2">
                   <div className="flex items-center gap-4">
                     <h3 className="font-semibold italic text-sm mb-0">Name:</h3>
-                    <p className="text-base mb-0">{modalData.name}</p>
+                    <p className="text-base mb-0">{modalData?.name}</p>
                   </div>
                   <div className="flex items-center gap-4">
                     <h3 className="font-semibold italic text-sm mb-0">
                       Email:
                     </h3>
-                    <p className="text-base mb-0">{modalData.email}</p>
+                    <p className="text-base mb-0">{modalData?.email}</p>
                   </div>
                   <div className="flex items-center gap-4">
                     <h3 className="font-semibold italic text-sm mb-0">
                       ID Number:
                     </h3>
-                    <p className="text-base mb-0">{modalData.idNumber}</p>
+                    <p className="text-base mb-0">{modalData?.idNumber}</p>
                   </div>
                   <div className="flex items-center gap-4">
                     <h3 className="font-semibold italic text-sm mb-0">
                       Course Code:
                     </h3>
-                    <p className="text-base mb-0">{modalData.courseCode}</p>
+                    <p className="text-base mb-0">{modalData?.courseCode}</p>
                   </div>
                   <div className="flex items-center gap-4">
                     <h3 className="font-semibold italic text-sm mb-0">
                       Evaluative Component:
                     </h3>
-                    <p className="text-base mb-0">{modalData.evalComponent}</p>
+                    <p className="text-base mb-0">{modalData?.evalComponent}</p>
                   </div>
                   <div className="flex items-center gap-4">
                     <h3 className="font-semibold italic text-sm mb-0">
                       Reason for Makeup:
                     </h3>
-                    <p className="text-base mb-0">{modalData.reason}</p>
+                    <p className="text-base mb-0">{modalData?.reason}</p>
                   </div>
                   <div className="flex items-center gap-4">
                     <h3 className="font-semibold italic text-sm mb-0">
                       Submitted On:
                     </h3>
                     <p className="text-base mb-0">
-                      {formatDateTime(modalData["submission-time"])}
+                      {modalData &&
+                        formatDateTime(modalData["submission-time"])}
                     </p>
                   </div>
                   <div className="flex items-center gap-4">
                     <h3 className="font-semibold italic text-sm mb-0">
                       Status:
                     </h3>
-                    <p className="text-base mb-0">{modalData.status}</p>
+                    <p className="text-base mb-0">{modalData?.status}</p>
                   </div>
                   <div className="flex items-center gap-4">
                     <h3 className="font-semibold italic text-sm mb-0">
@@ -328,7 +449,7 @@ const AdminDashboard = ({ searchTerm }) => {
                         >
                           <CardBody className="flex flex-row items-start">
                             <Image
-                              src={FileIconSVG}
+                              src={FileIconSVG || "/placeholder.svg"}
                               width={24}
                               height={24}
                               alt=""
@@ -344,8 +465,8 @@ const AdminDashboard = ({ searchTerm }) => {
                 </div>
               </ModalBody>
 
-              {modalData.facRemarks && (
-                <div className="flex items-center gap-4">
+              {modalData?.facRemarks && (
+                <div className="flex items-center gap-4 px-8">
                   <h3 className="font-semibold italic text-sm mb-0">
                     Faculty Remarks:
                   </h3>
