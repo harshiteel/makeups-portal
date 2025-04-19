@@ -10,6 +10,7 @@ import {
   TableCell,
   Pagination,
   Button,
+  ButtonGroup,
   Modal,
   ModalContent,
   ModalHeader,
@@ -84,9 +85,44 @@ const AdminDashboard = ({ searchTerm }) => {
       const data = await response.json();
       setCourseCodes(data.courseCodes);
     } catch (error) {
+      console.log(error);
       alert("Error fetching course codes");
     }
   };
+
+  // Add function to update request status - without faculty remarks
+  async function updateRequestStatus(id, status) {
+    try {
+      const response = await fetch("/makeups/api/ttd-update-status", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: id,
+          status: status,
+          session: session,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.message || data.error || "Failed to update request status"
+        );
+      }
+
+      // Success case
+      alert(data.message || "Request status updated successfully");
+
+      // Refresh makeup requests after update
+      await fetchData(activeTab);
+    } catch (error) {
+      alert(error.message || "An error occurred while updating the request");
+      console.error("Update error:", error);
+    }
+  }
 
   useEffect(() => {
     document.title = "Admin Dashboard | Makeups Portal";
@@ -210,6 +246,39 @@ const AdminDashboard = ({ searchTerm }) => {
 
   const pages = Math.ceil(filteredRequests.length / rowsPerPage);
 
+  // Function to render action buttons only for "faculty approved" status
+  const renderActionButtons = (request) => {
+    if (request.status === "faculty approved") {
+      return (
+        <ButtonGroup>
+          <Button
+            size="sm"
+            radius="md"
+            color="success"
+            onClick={(e) => {
+              e.stopPropagation(); // Prevent opening the modal
+              updateRequestStatus(request._id, "Accepted");
+            }}
+          >
+            Approve
+          </Button>
+          <Button
+            size="sm"
+            radius="md"
+            color="danger"
+            onClick={(e) => {
+              e.stopPropagation(); // Prevent opening the modal
+              updateRequestStatus(request._id, "Denied");
+            }}
+          >
+            Deny
+          </Button>
+        </ButtonGroup>
+      );
+    }
+    return null;
+  };
+
   return (
     <div className="flex flex-col items-center h-screen">
       <h1 className="font-semibold my-4 italic text-center">
@@ -228,6 +297,7 @@ const AdminDashboard = ({ searchTerm }) => {
         }}
       >
         <Tab key="Pending" title="Pending Requests" />
+        <Tab key="faculty approved" title="Faculty Approved" />
         <Tab key="Accepted" title="Accepted Requests" />
         <Tab key="Denied" title="Rejected Requests" />
       </Tabs>
@@ -257,7 +327,7 @@ const AdminDashboard = ({ searchTerm }) => {
         </div>
       </div>
 
-      {filteredRequests.length > 0 && (
+      {filteredRequests.length >= 0 && (
         <div className="text-sm text-gray-500 my-2">
           Showing {filteredRequests.length}{" "}
           {filteredRequests.length === 1 ? "request" : "requests"}
@@ -265,25 +335,6 @@ const AdminDashboard = ({ searchTerm }) => {
             dateFilter.endDate ||
             courseCodeFilters.length > 0) &&
             " with filters applied"}
-        </div>
-      )}
-
-      {/* Display selected course codes as chips */}
-      {courseCodeFilters.length > 0 && (
-        <div className="flex flex-wrap gap-2 my-2 justify-center">
-          {courseCodeFilters.map((code) => (
-            <Chip
-              key={code}
-              onClose={() => {
-                setCourseCodeFilters((prev) => prev.filter((c) => c !== code));
-              }}
-              variant="flat"
-              color="primary"
-              size="sm"
-            >
-              {code}
-            </Chip>
-          ))}
         </div>
       )}
 
@@ -332,6 +383,7 @@ const AdminDashboard = ({ searchTerm }) => {
           <TableColumn className="text-center">Reason</TableColumn>
           <TableColumn className="text-center">Submitted At</TableColumn>
           <TableColumn className="text-center">Status</TableColumn>
+          <TableColumn className="text-center">Actions</TableColumn>
         </TableHeader>
         <TableBody
           items={paginatedRequests}
@@ -364,6 +416,12 @@ const AdminDashboard = ({ searchTerm }) => {
                 {formatDateTime(request["submission-time"])}
               </TableCell>
               <TableCell className="text-center">{request.status}</TableCell>
+              <TableCell
+                className="text-center"
+                onClick={(e) => e.stopPropagation()} // Prevent row click when clicking on action buttons
+              >
+                {renderActionButtons(request)}
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>
@@ -463,16 +521,43 @@ const AdminDashboard = ({ searchTerm }) => {
                     ))}
                   </div>
                 </div>
-              </ModalBody>
 
-              {modalData?.facRemarks && (
-                <div className="flex items-center gap-4 px-8">
-                  <h3 className="font-semibold italic text-sm mb-0">
-                    Faculty Remarks:
-                  </h3>
-                  <p className="text-base mb-0">{modalData.facRemarks}</p>
-                </div>
-              )}
+                {modalData?.facRemarks && (
+                  <div className="flex items-center gap-4 mb-4">
+                    <h3 className="font-semibold italic text-sm mb-0">
+                      Faculty Remarks:
+                    </h3>
+                    <p className="text-base mb-0">{modalData.facRemarks}</p>
+                  </div>
+                )}
+
+                {modalData?.status === "faculty approved" && (
+                  <div className="mt-4 flex justify-center gap-4">
+                    <Button
+                      size="md"
+                      radius="md"
+                      color="success"
+                      onClick={() => {
+                        onClose();
+                        updateRequestStatus(modalData._id, "Accepted");
+                      }}
+                    >
+                      Approve
+                    </Button>
+                    <Button
+                      size="md"
+                      radius="md"
+                      color="danger"
+                      onClick={() => {
+                        onClose();
+                        updateRequestStatus(modalData._id, "Denied");
+                      }}
+                    >
+                      Deny
+                    </Button>
+                  </div>
+                )}
+              </ModalBody>
 
               <ModalFooter>
                 <Button color="danger" variant="light" onPress={onClose}>

@@ -37,6 +37,7 @@ const FacultyDashboard = ({ searchTerm }) => {
     startDate: null,
     endDate: null,
   });
+  const [isLoading, setIsLoading] = useState(false);
 
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [scrollBehavior] = React.useState("inside");
@@ -46,6 +47,7 @@ const FacultyDashboard = ({ searchTerm }) => {
 
   async function getFacultyCourseCode(fE) {
     try {
+      setIsLoading(true);
       const response = await fetch("/makeups/api/fetch-faculty-course-code", {
         method: "POST",
         headers: {
@@ -54,17 +56,27 @@ const FacultyDashboard = ({ searchTerm }) => {
         body: JSON.stringify({ email: fE, session: session }),
       });
 
+      if (!response.ok) {
+        throw new Error("Failed to fetch faculty course code");
+      }
+
       const data = await response.json();
       setFacultyCourseCode(data.courseCode);
     } catch (error) {
+      console.error("Error fetching faculty course code:", error);
       alert(
         "We couldn't find any courses registered to you as its Instructor Incharge. If you think this is a mistake, please contact TimeTable Division."
       );
+    } finally {
+      setIsLoading(false);
     }
   }
 
   async function fetchData(courseCode, status) {
+    if (!courseCode) return; // Don't attempt to fetch if course code isn't available
+
     try {
+      setIsLoading(true);
       const response = await fetch("/makeups/api/fetch-requests", {
         method: "POST",
         headers: {
@@ -78,7 +90,8 @@ const FacultyDashboard = ({ searchTerm }) => {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to fetch requests");
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to fetch requests");
       }
 
       const data = await response.json();
@@ -89,12 +102,19 @@ const FacultyDashboard = ({ searchTerm }) => {
       });
       setMakeupRequests(sortedData);
     } catch (error) {
-      alert(error.message);
+      console.error("Error fetching requests:", error);
+      // Only show alert for non-empty course codes to avoid annoying errors during initialization
+      if (courseCode) {
+        alert(error.message);
+      }
+    } finally {
+      setIsLoading(false);
     }
   }
 
   async function fetchAttachments(oid) {
     try {
+      setIsLoading(true);
       const response = await fetch("/makeups/api/fetch-attachments", {
         method: "POST",
         headers: {
@@ -110,7 +130,10 @@ const FacultyDashboard = ({ searchTerm }) => {
       const data = await response.json();
       setAttachments(data);
     } catch (error) {
+      console.error("Error fetching attachments:", error);
       alert(error.message);
+    } finally {
+      setIsLoading(false);
     }
   }
 
@@ -127,17 +150,17 @@ const FacultyDashboard = ({ searchTerm }) => {
 
   useEffect(() => {
     document.title = "Faculty Dashboard | Makeups Portal";
-    const fetchDataByTab = async () => {
-      if (session?.user?.email) {
-        await getFacultyCourseCode(session.user.email);
-      }
-      if (facultyCourseCode) {
-        await fetchData(facultyCourseCode, activeTab);
-      }
-    };
 
-    fetchDataByTab();
-  }, [session, facultyCourseCode, activeTab ]);
+    if (session?.user?.email && !facultyCourseCode) {
+      getFacultyCourseCode(session.user.email);
+    }
+  }, [session]);
+
+  useEffect(() => {
+    if (facultyCourseCode && activeTab) {
+      fetchData(facultyCourseCode, activeTab);
+    }
+  }, [facultyCourseCode, activeTab]);
 
   function formatDateTime(dateTimeString) {
     const date = new Date(dateTimeString);
@@ -154,7 +177,8 @@ const FacultyDashboard = ({ searchTerm }) => {
 
   async function updateRequestStatus(id, status) {
     try {
-      const response = await fetch("/makeups/api/update-request-status", {
+      setIsLoading(true);
+      const response = await fetch("/makeups/api/faculty-update-status", {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -168,17 +192,23 @@ const FacultyDashboard = ({ searchTerm }) => {
       });
 
       if (!response.ok) {
-        throw new Error(
-          "Failed to update request status, " + JSON.stringify(response)
-        );
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to update request status");
       }
 
+      // Clear remarks after successful update
+      setFacRemarks("");
+
+      // Success message
       alert("Request status updated successfully");
 
-      // Refresh makeup requests after update
+      // Refresh data with the current tab
       await fetchData(facultyCourseCode, activeTab);
     } catch (error) {
+      console.error("Error updating request status:", error);
       alert(error.message);
+    } finally {
+      setIsLoading(false);
     }
   }
 
@@ -199,7 +229,7 @@ const FacultyDashboard = ({ searchTerm }) => {
     if (searchTerm) {
       filtered = filtered.filter((request) =>
         Object.values(request).some((value) =>
-          value.toString().toLowerCase().includes(searchTerm.toLowerCase())
+          String(value).toLowerCase().includes(searchTerm.toLowerCase())
         )
       );
     }
@@ -236,6 +266,16 @@ const FacultyDashboard = ({ searchTerm }) => {
     return filteredRequests.slice(start, end);
   }, [page, filteredRequests]);
 
+  // Function to check if buttons should be disabled
+  const isActionDisabled = (status) => {
+    return (
+      status === "Accepted" ||
+      status === "Denied" ||
+      status === "faculty approved" ||
+      isLoading
+    );
+  };
+
   return (
     <div className="flex flex-col items-center h-screen">
       <h1 className="font-semibold my-4 italic text-center">
@@ -249,10 +289,10 @@ const FacultyDashboard = ({ searchTerm }) => {
         activeKey={activeTab}
         onSelectionChange={(key) => {
           setActiveTab(key);
-          fetchData(facultyCourseCode, key);
         }}
       >
         <Tab key="Pending" title="Pending Requests" />
+        <Tab key="faculty approved" title="Faculty Approved" />
         <Tab key="Accepted" title="Accepted Requests" />
         <Tab key="Denied" title="Rejected Requests" />
       </Tabs>
@@ -263,8 +303,10 @@ const FacultyDashboard = ({ searchTerm }) => {
       </div>
       {filteredRequests.length > 0 && (
         <div className="text-sm text-gray-500 my-2">
-          Showing {filteredRequests.length} {filteredRequests.length === 1 ? 'request' : 'requests'}
-          {(dateFilter.startDate || dateFilter.endDate) && ' with date filter applied'}
+          Showing {filteredRequests.length}{" "}
+          {filteredRequests.length === 1 ? "request" : "requests"}
+          {(dateFilter.startDate || dateFilter.endDate) &&
+            " with date filter applied"}
         </div>
       )}
       <Table
@@ -298,7 +340,7 @@ const FacultyDashboard = ({ searchTerm }) => {
         </TableHeader>
         <TableBody
           items={paginatedRequests}
-          emptyContent={"No rows to display."}
+          emptyContent={isLoading ? "Loading..." : "No rows to display."}
         >
           {paginatedRequests.map((request, index) => (
             <TableRow
@@ -306,6 +348,7 @@ const FacultyDashboard = ({ searchTerm }) => {
               className="hover:bg-gray-100 hover:cursor-pointer hover:shadow-sm hover:delay-[150]"
               onClick={() => {
                 setModalData(request);
+                setFacRemarks(request.facRemarks || ""); // Pre-fill existing remarks if any
                 onOpen();
                 fetchAttachments(request._id);
               }}
@@ -333,10 +376,11 @@ const FacultyDashboard = ({ searchTerm }) => {
                       size="sm"
                       radius="md"
                       color="success"
-                      onClick={() =>
-                        updateRequestStatus(request._id, "Accepted")
-                      }
-                      isDisabled={request.status === "Accepted"}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        updateRequestStatus(request._id, "Accepted");
+                      }}
+                      isDisabled={isActionDisabled(request.status)}
                     >
                       Approve
                     </Button>
@@ -344,8 +388,11 @@ const FacultyDashboard = ({ searchTerm }) => {
                       size="sm"
                       radius="md"
                       color="danger"
-                      onClick={() => updateRequestStatus(request._id, "Denied")}
-                      isDisabled={request.status === "Denied"}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        updateRequestStatus(request._id, "Denied");
+                      }}
+                      isDisabled={isActionDisabled(request.status)}
                     >
                       Deny
                     </Button>
@@ -359,7 +406,10 @@ const FacultyDashboard = ({ searchTerm }) => {
 
       <Modal
         isOpen={isOpen}
-        onOpenChange={onOpenChange}
+        onOpenChange={(open) => {
+          if (!open) setFacRemarks(""); // Clear remarks when closing modal
+          onOpenChange(open);
+        }}
         scrollBehavior={scrollBehavior}
         size="5xl"
         backdrop="blur"
@@ -368,91 +418,107 @@ const FacultyDashboard = ({ searchTerm }) => {
           {(onClose) => (
             <>
               <ModalHeader className="flex flex-col gap-4">
-                {modalData.name}&apos;s Makeup Request:
+                {modalData?.name}&apos;s Makeup Request:
               </ModalHeader>
               <ModalBody>
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-center gap-4">
-                    <h3 className="font-semibold italic text-sm mb-0">Name:</h3>
-                    <p className="text-base mb-0">{modalData.name}</p>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <h3 className="font-semibold italic text-sm mb-0">
-                      Email:
-                    </h3>
-                    <p className="text-base mb-0">{modalData.email}</p>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <h3 className="font-semibold italic text-sm mb-0">
-                      ID Number:
-                    </h3>
-                    <p className="text-base mb-0">{modalData.idNumber}</p>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <h3 className="font-semibold italic text-sm mb-0">
-                      Course Code:
-                    </h3>
-                    <p className="text-base mb-0">{modalData.courseCode}</p>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <h3 className="font-semibold italic text-sm mb-0">
-                      Evaluative Component:
-                    </h3>
-                    <p className="text-base mb-0">{modalData.evalComponent}</p>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <h3 className="font-semibold italic text-sm mb-0">
-                      Reason for Makeup:
-                    </h3>
-                    <p className="text-base mb-0">{modalData.reason}</p>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <h3 className="font-semibold italic text-sm mb-0">
-                      Submitted On:
-                    </h3>
-                    <p className="text-base mb-0">
-                      {formatDateTime(modalData["submission-time"])}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <h3 className="font-semibold italic text-sm mb-0">
-                      Attachments:
-                    </h3>
-
-                    {Object.keys(attachments).map((key, index) => (
-                      <div
-                        onClick={() => openAttachment(attachments[key])}
-                        key={index}
-                      >
-                        <Card
-                          className="hover:cursor-pointer"
-                          onClick={() => openAttachment(attachments[key])}
-                        >
-                          <CardBody className="flex flex-row items-start">
-                            <Image
-                              src="/makeups/images/file-icon.svg"
-                              width={24}
-                              height={24}
-                              alt=""
-                            />
-                            <p className="text-sm mx-6">
-                              {key.replace("attachment-", "")}
-                            </p>
-                          </CardBody>
-                        </Card>
-                      </div>
-                    ))}
-                  </div>
-
-                  {modalData.facRemarks && (
+                {modalData && (
+                  <div className="flex flex-col gap-2">
                     <div className="flex items-center gap-4">
                       <h3 className="font-semibold italic text-sm mb-0">
-                        Faculty Remarks:
+                        Name:
                       </h3>
-                      <p className="text-base mb-0">{modalData.facRemarks}</p>
+                      <p className="text-base mb-0">{modalData.name}</p>
                     </div>
-                  )}
-                </div>
+                    <div className="flex items-center gap-4">
+                      <h3 className="font-semibold italic text-sm mb-0">
+                        Email:
+                      </h3>
+                      <p className="text-base mb-0">{modalData.email}</p>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <h3 className="font-semibold italic text-sm mb-0">
+                        ID Number:
+                      </h3>
+                      <p className="text-base mb-0">{modalData.idNumber}</p>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <h3 className="font-semibold italic text-sm mb-0">
+                        Course Code:
+                      </h3>
+                      <p className="text-base mb-0">{modalData.courseCode}</p>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <h3 className="font-semibold italic text-sm mb-0">
+                        Status:
+                      </h3>
+                      <p className="text-base mb-0">{modalData.status}</p>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <h3 className="font-semibold italic text-sm mb-0">
+                        Evaluative Component:
+                      </h3>
+                      <p className="text-base mb-0">
+                        {modalData.evalComponent}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <h3 className="font-semibold italic text-sm mb-0">
+                        Reason for Makeup:
+                      </h3>
+                      <p className="text-base mb-0">{modalData.reason}</p>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <h3 className="font-semibold italic text-sm mb-0">
+                        Submitted On:
+                      </h3>
+                      <p className="text-base mb-0">
+                        {formatDateTime(modalData["submission-time"])}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <h3 className="font-semibold italic text-sm mb-0">
+                        Attachments:
+                      </h3>
+
+                      {Object.keys(attachments).length > 0 ? (
+                        Object.keys(attachments).map((key, index) => (
+                          <div
+                            onClick={() => openAttachment(attachments[key])}
+                            key={index}
+                          >
+                            <Card
+                              className="hover:cursor-pointer"
+                              onClick={() => openAttachment(attachments[key])}
+                            >
+                              <CardBody className="flex flex-row items-start">
+                                <Image
+                                  src="/makeups/images/file-icon.svg"
+                                  width={24}
+                                  height={24}
+                                  alt=""
+                                />
+                                <p className="text-sm mx-6">
+                                  {key.replace("attachment-", "")}
+                                </p>
+                              </CardBody>
+                            </Card>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-base mb-0">No attachments</p>
+                      )}
+                    </div>
+
+                    {modalData.facRemarks && (
+                      <div className="flex items-center gap-4">
+                        <h3 className="font-semibold italic text-sm mb-0">
+                          Faculty Remarks:
+                        </h3>
+                        <p className="text-base mb-0">{modalData.facRemarks}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 <Divider className="my-4" />
 
@@ -461,35 +527,38 @@ const FacultyDashboard = ({ searchTerm }) => {
                     label="Remarks: "
                     placeholder="Please leave any remarks (optional) for the student here."
                     onValueChange={(value) => setFacRemarks(value)}
+                    value={facRemarks}
                   />
                 </div>
 
-                <ButtonGroup>
-                  <Button
-                    size="sm"
-                    radius="md"
-                    color="success"
-                    onClick={() => {
-                      onClose();
-                      updateRequestStatus(modalData._id, "Accepted");
-                    }}
-                    isDisabled={modalData.status === "Accepted"}
-                  >
-                    Approve
-                  </Button>
-                  <Button
-                    size="sm"
-                    radius="md"
-                    color="danger"
-                    onClick={() => {
-                      onClose();
-                      updateRequestStatus(modalData._id, "Denied");
-                    }}
-                    isDisabled={modalData.status === "Denied"}
-                  >
-                    Deny
-                  </Button>
-                </ButtonGroup>
+                {modalData && (
+                  <ButtonGroup>
+                    <Button
+                      size="sm"
+                      radius="md"
+                      color="success"
+                      onClick={() => {
+                        onClose();
+                        updateRequestStatus(modalData._id, "Accepted");
+                      }}
+                      isDisabled={isActionDisabled(modalData.status)}
+                    >
+                      Approve
+                    </Button>
+                    <Button
+                      size="sm"
+                      radius="md"
+                      color="danger"
+                      onClick={() => {
+                        onClose();
+                        updateRequestStatus(modalData._id, "Denied");
+                      }}
+                      isDisabled={isActionDisabled(modalData.status)}
+                    >
+                      Deny
+                    </Button>
+                  </ButtonGroup>
+                )}
               </ModalBody>
 
               <ModalFooter>
