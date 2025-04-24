@@ -9,32 +9,54 @@ export async function POST(request: NextRequest) {
     const data = await request.formData();
     const formData: any = {};
 
+    const courseCode = data.get('courseCode');
+    if (!courseCode) {
+      return new NextResponse(JSON.stringify({ 
+        message: 'Error: Course code is required' 
+      }), { status: 400 });
+    }
+
+    const database = client.db('ID-makeups');
+    const icsCollection = database.collection('ics');
+    const courseInfo = await icsCollection.findOne({ courseCode });
+
+    if (!courseInfo) {
+      await client.close();
+      return new NextResponse(JSON.stringify({ 
+        message: 'Error: Invalid course code' 
+      }), { status: 400 });
+    }
+
+    const compreDate = courseInfo.compreDate;
+    const currentDate = new Date();
+    const twoDaysAgo = new Date();
+    twoDaysAgo.setDate(currentDate.getDate() - 2);
+
+    if (compreDate < twoDaysAgo) {
+      await client.close();
+      return new NextResponse(JSON.stringify({
+        message: 'Error: Submission deadline has passed for this course'
+      }), { status: 403 });
+    }
+
     for (const entry of data.entries()) {
       const key = entry[0];
       const value = entry[1];
 
       if (value instanceof File) {
-        // If the value is a File, convert it to a BinData object
         const buffer = await value.arrayBuffer();
         const binData = new Binary(new Uint8Array(buffer));
       
-        // Store the MIME type along with the BinData object
         formData[key] = {
           data: binData,
-          mimeType: value.type, // This assumes that 'value' is a File object with a 'type' property
+          mimeType: value.type, 
         };
       } else {
-        // Otherwise, just add the value to the form data
         formData[key] = value;
       }
     }
-
-    await client.connect();
-    const database = client.db('ID-makeups');
-    const collection = database.collection('makeup-requests'); 
-
-    // Store formData in the MongoDB collection
-    await collection.insertOne(formData);
+    const makeupCollection = database.collection('makeup-requests');
+    await makeupCollection.insertOne(formData);
 
     await client.close();
 

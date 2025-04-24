@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useEffect, useState } from "react";
 import {
   Table,
@@ -15,33 +17,37 @@ import {
   ModalBody,
   ModalFooter,
   useDisclosure,
-  RadioGroup,
-  Radio,
   Tabs,
   Tab,
   Card,
   CardBody,
   Textarea,
-  Divider
+  Divider,
 } from "@nextui-org/react";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
+import DateRangeFilter from "./date-filter";
 
 const FacultyDashboard = ({ searchTerm }) => {
   const { data: session } = useSession();
   const [makeupRequests, setMakeupRequests] = useState([]);
   const [facultyCourseCode, setFacultyCourseCode] = useState("");
   const [activeTab, setActiveTab] = useState("Pending");
+  const [dateFilter, setDateFilter] = useState({
+    startDate: null,
+    endDate: null,
+  });
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Modal
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
-  const [scrollBehavior, setScrollBehavior] = React.useState("inside");
+  const [scrollBehavior] = React.useState("inside");
   const [modalData, setModalData] = React.useState(null);
   const [attachments, setAttachments] = React.useState([]);
   const [facRemarks, setFacRemarks] = React.useState("");
 
   async function getFacultyCourseCode(fE) {
     try {
+      setIsLoading(true);
       const response = await fetch("/makeups/api/fetch-faculty-course-code", {
         method: "POST",
         headers: {
@@ -50,17 +56,27 @@ const FacultyDashboard = ({ searchTerm }) => {
         body: JSON.stringify({ email: fE, session: session }),
       });
 
+      if (!response.ok) {
+        throw new Error("Failed to fetch faculty course code");
+      }
+
       const data = await response.json();
       setFacultyCourseCode(data.courseCode);
     } catch (error) {
+      console.error("Error fetching faculty course code:", error);
       alert(
         "We couldn't find any courses registered to you as its Instructor Incharge. If you think this is a mistake, please contact TimeTable Division."
       );
+    } finally {
+      setIsLoading(false);
     }
   }
 
   async function fetchData(courseCode, status) {
+    if (!courseCode) return; // Don't attempt to fetch if course code isn't available
+
     try {
+      setIsLoading(true);
       const response = await fetch("/makeups/api/fetch-requests", {
         method: "POST",
         headers: {
@@ -74,7 +90,8 @@ const FacultyDashboard = ({ searchTerm }) => {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to fetch requests");
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to fetch requests");
       }
 
       const data = await response.json();
@@ -85,12 +102,19 @@ const FacultyDashboard = ({ searchTerm }) => {
       });
       setMakeupRequests(sortedData);
     } catch (error) {
-      alert(error.message);
+      console.error("Error fetching requests:", error);
+      // Only show alert for non-empty course codes to avoid annoying errors during initialization
+      if (courseCode) {
+        alert(error.message);
+      }
+    } finally {
+      setIsLoading(false);
     }
   }
 
   async function fetchAttachments(oid) {
     try {
+      setIsLoading(true);
       const response = await fetch("/makeups/api/fetch-attachments", {
         method: "POST",
         headers: {
@@ -106,7 +130,10 @@ const FacultyDashboard = ({ searchTerm }) => {
       const data = await response.json();
       setAttachments(data);
     } catch (error) {
+      console.error("Error fetching attachments:", error);
       alert(error.message);
+    } finally {
+      setIsLoading(false);
     }
   }
 
@@ -123,17 +150,17 @@ const FacultyDashboard = ({ searchTerm }) => {
 
   useEffect(() => {
     document.title = "Faculty Dashboard | Makeups Portal";
-    const fetchDataByTab = async () => {
-      if (session?.user?.email) {
-        await getFacultyCourseCode(session.user.email);
-      }
-      if (facultyCourseCode) {
-        await fetchData(facultyCourseCode, activeTab);
-      }
-    };
 
-    fetchDataByTab();
-  }, [session, facultyCourseCode, activeTab]);
+    if (session?.user?.email && !facultyCourseCode) {
+      getFacultyCourseCode(session.user.email);
+    }
+  }, [session]);
+
+  useEffect(() => {
+    if (facultyCourseCode && activeTab) {
+      fetchData(facultyCourseCode, activeTab);
+    }
+  }, [facultyCourseCode, activeTab]);
 
   function formatDateTime(dateTimeString) {
     const date = new Date(dateTimeString);
@@ -150,7 +177,8 @@ const FacultyDashboard = ({ searchTerm }) => {
 
   async function updateRequestStatus(id, status) {
     try {
-      const response = await fetch("/makeups/api/update-request-status", {
+      setIsLoading(true);
+      const response = await fetch("/makeups/api/faculty-update-status", {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -163,37 +191,74 @@ const FacultyDashboard = ({ searchTerm }) => {
         }),
       });
 
-      console.log("aa ", id, status, session);
-
       if (!response.ok) {
-        throw new Error(
-          "Failed to update request status, " + JSON.stringify(response)
-        );
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to update request status");
       }
 
+      // Clear remarks after successful update
+      setFacRemarks("");
+
+      // Success message
       alert("Request status updated successfully");
 
-      // Refresh makeup requests after update
+      // Refresh data with the current tab
       await fetchData(facultyCourseCode, activeTab);
     } catch (error) {
+      console.error("Error updating request status:", error);
       alert(error.message);
+    } finally {
+      setIsLoading(false);
     }
   }
+
+  const handleDateFilterChange = (filter) => {
+    setDateFilter(filter);
+    // Reset to first page when filter changes
+    setPage(1);
+  };
 
   // Pagination
   const [page, setPage] = useState(1);
   const rowsPerPage = 10; // Hardcoded to 10 entries per page. TODO: User defined
 
-  const pages = Math.ceil(makeupRequests.length / rowsPerPage);
-
   const filteredRequests = React.useMemo(() => {
-    if (!searchTerm) return makeupRequests;
-    return makeupRequests.filter((request) =>
-      Object.values(request).some((value) =>
-        value.toString().toLowerCase().includes(searchTerm.toLowerCase())
-      )
-    );
-  }, [searchTerm, makeupRequests]);
+    let filtered = makeupRequests;
+
+    // Text search filter
+    if (searchTerm) {
+      filtered = filtered.filter((request) =>
+        Object.values(request).some((value) =>
+          String(value).toLowerCase().includes(searchTerm.toLowerCase())
+        )
+      );
+    }
+
+    // Date filter
+    if (dateFilter.startDate || dateFilter.endDate) {
+      filtered = filtered.filter((request) => {
+        const submissionDate = new Date(request["submission-time"]);
+
+        // Check if submission date is after start date (if provided)
+        const afterStartDate = dateFilter.startDate
+          ? submissionDate >= dateFilter.startDate
+          : true;
+
+        // Check if submission date is before end date (if provided)
+        // Add one day to end date to include the entire end date
+        const beforeEndDate = dateFilter.endDate
+          ? submissionDate <=
+            new Date(dateFilter.endDate.setHours(23, 59, 59, 999))
+          : true;
+
+        return afterStartDate && beforeEndDate;
+      });
+    }
+
+    return filtered;
+  }, [searchTerm, makeupRequests, dateFilter]);
+
+  const pages = Math.ceil(filteredRequests.length / rowsPerPage);
 
   const paginatedRequests = React.useMemo(() => {
     const start = (page - 1) * rowsPerPage;
@@ -201,27 +266,49 @@ const FacultyDashboard = ({ searchTerm }) => {
     return filteredRequests.slice(start, end);
   }, [page, filteredRequests]);
 
+  // Function to check if buttons should be disabled
+  const isActionDisabled = (status) => {
+    return (
+      status === "Accepted" ||
+      status === "Denied" ||
+      status === "faculty approved" ||
+      isLoading
+    );
+  };
+
   return (
     <div className="flex flex-col items-center h-screen">
       <h1 className="font-semibold my-4 italic text-center">
-        {session?.user?.name}'s Faculty Dashboard
+        {session?.user?.name}&apos;s Faculty Dashboard
       </h1>
 
-      <p className="italic font-sm">Click a row to open deatailed view</p>
+      <p className="italic font-sm">Click a row to open detailed view</p>
 
       <Tabs
         className="flex items-center my-6 justify-center"
         activeKey={activeTab}
         onSelectionChange={(key) => {
           setActiveTab(key);
-          fetchData(facultyCourseCode, key);
         }}
       >
         <Tab key="Pending" title="Pending Requests" />
+        <Tab key="faculty approved" title="Faculty Approved" />
         <Tab key="Accepted" title="Accepted Requests" />
         <Tab key="Denied" title="Rejected Requests" />
       </Tabs>
 
+      {/* Date filter component */}
+      <div className="w-full max-w-7xl px-4">
+        <DateRangeFilter onFilterChange={handleDateFilterChange} />
+      </div>
+      {filteredRequests.length > 0 && (
+        <div className="text-sm text-gray-500 my-2">
+          Showing {filteredRequests.length}{" "}
+          {filteredRequests.length === 1 ? "request" : "requests"}
+          {(dateFilter.startDate || dateFilter.endDate) &&
+            " with date filter applied"}
+        </div>
+      )}
       <Table
         bottomContent={
           <div className="flex w-full justify-center">
@@ -253,14 +340,15 @@ const FacultyDashboard = ({ searchTerm }) => {
         </TableHeader>
         <TableBody
           items={paginatedRequests}
-          emptyContent={"No rows to display."}
+          emptyContent={isLoading ? "Loading..." : "No rows to display."}
         >
           {paginatedRequests.map((request, index) => (
             <TableRow
               key={index}
-              className=" hover:bg-gray-100 hover:cursor-pointer hover:shadow-sm hover:delay-[150]"
+              className="hover:bg-gray-100 hover:cursor-pointer hover:shadow-sm hover:delay-[150]"
               onClick={() => {
                 setModalData(request);
+                setFacRemarks(request.facRemarks || ""); // Pre-fill existing remarks if any
                 onOpen();
                 fetchAttachments(request._id);
               }}
@@ -288,10 +376,11 @@ const FacultyDashboard = ({ searchTerm }) => {
                       size="sm"
                       radius="md"
                       color="success"
-                      onClick={() =>
-                        updateRequestStatus(request._id, "Accepted")
-                      }
-                      isDisabled={request.status === "Accepted"}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        updateRequestStatus(request._id, "Accepted");
+                      }}
+                      isDisabled={isActionDisabled(request.status)}
                     >
                       Approve
                     </Button>
@@ -299,8 +388,11 @@ const FacultyDashboard = ({ searchTerm }) => {
                       size="sm"
                       radius="md"
                       color="danger"
-                      onClick={() => updateRequestStatus(request._id, "Denied")}
-                      isDisabled={request.status === "Denied"}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        updateRequestStatus(request._id, "Denied");
+                      }}
+                      isDisabled={isActionDisabled(request.status)}
                     >
                       Deny
                     </Button>
@@ -314,7 +406,10 @@ const FacultyDashboard = ({ searchTerm }) => {
 
       <Modal
         isOpen={isOpen}
-        onOpenChange={onOpenChange}
+        onOpenChange={(open) => {
+          if (!open) setFacRemarks(""); // Clear remarks when closing modal
+          onOpenChange(open);
+        }}
         scrollBehavior={scrollBehavior}
         size="5xl"
         backdrop="blur"
@@ -323,91 +418,107 @@ const FacultyDashboard = ({ searchTerm }) => {
           {(onClose) => (
             <>
               <ModalHeader className="flex flex-col gap-4">
-                {modalData.name}'s Makeup Request:
+                {modalData?.name}&apos;s Makeup Request:
               </ModalHeader>
               <ModalBody>
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-center gap-4">
-                    <h3 className="font-semibold italic text-sm mb-0">Name:</h3>
-                    <p className="text-base mb-0">{modalData.name}</p>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <h3 className="font-semibold italic text-sm mb-0">
-                      Email:
-                    </h3>
-                    <p className="text-base mb-0">{modalData.email}</p>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <h3 className="font-semibold italic text-sm mb-0">
-                      ID Number:
-                    </h3>
-                    <p className="text-base mb-0">{modalData.idNumber}</p>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <h3 className="font-semibold italic text-sm mb-0">
-                      Course Code:
-                    </h3>
-                    <p className="text-base mb-0">{modalData.courseCode}</p>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <h3 className="font-semibold italic text-sm mb-0">
-                      Evaluative Component:
-                    </h3>
-                    <p className="text-base mb-0">{modalData.evalComponent}</p>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <h3 className="font-semibold italic text-sm mb-0">
-                      Reason for Makeup:
-                    </h3>
-                    <p className="text-base mb-0">{modalData.reason}</p>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <h3 className="font-semibold italic text-sm mb-0">
-                      Submitted On:
-                    </h3>
-                    <p className="text-base mb-0">
-                      {formatDateTime(modalData["submission-time"])}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <h3 className="font-semibold italic text-sm mb-0">
-                      Attachments:
-                    </h3>
-
-                    {Object.keys(attachments).map((key, index) => (
-                      <div
-                        onClick={() => openAttachment(attachments[key])}
-                        key={index}
-                      >
-                        <Card
-                          className="hover:cursor-pointer"
-                          onClick={() => openAttachment(attachments[key])}
-                        >
-                          <CardBody className="flex flex-row items-start">
-                            <Image
-                              src="/makeups/images/file-icon.svg"
-                              width={24}
-                              height={24}
-                              alt=""
-                            />
-                            <p className="text-sm mx-6">
-                              {key.replace("attachment-", "")}
-                            </p>
-                          </CardBody>
-                        </Card>
-                      </div>
-                    ))}
-                  </div>
-
-                  {modalData.facRemarks && (
+                {modalData && (
+                  <div className="flex flex-col gap-2">
                     <div className="flex items-center gap-4">
                       <h3 className="font-semibold italic text-sm mb-0">
-                        Faculty Remarks:
+                        Name:
                       </h3>
-                      <p className="text-base mb-0">{modalData.facRemarks}</p>
+                      <p className="text-base mb-0">{modalData.name}</p>
                     </div>
-                  )}
-                </div>
+                    <div className="flex items-center gap-4">
+                      <h3 className="font-semibold italic text-sm mb-0">
+                        Email:
+                      </h3>
+                      <p className="text-base mb-0">{modalData.email}</p>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <h3 className="font-semibold italic text-sm mb-0">
+                        ID Number:
+                      </h3>
+                      <p className="text-base mb-0">{modalData.idNumber}</p>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <h3 className="font-semibold italic text-sm mb-0">
+                        Course Code:
+                      </h3>
+                      <p className="text-base mb-0">{modalData.courseCode}</p>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <h3 className="font-semibold italic text-sm mb-0">
+                        Status:
+                      </h3>
+                      <p className="text-base mb-0">{modalData.status}</p>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <h3 className="font-semibold italic text-sm mb-0">
+                        Evaluative Component:
+                      </h3>
+                      <p className="text-base mb-0">
+                        {modalData.evalComponent}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <h3 className="font-semibold italic text-sm mb-0">
+                        Reason for Makeup:
+                      </h3>
+                      <p className="text-base mb-0">{modalData.reason}</p>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <h3 className="font-semibold italic text-sm mb-0">
+                        Submitted On:
+                      </h3>
+                      <p className="text-base mb-0">
+                        {formatDateTime(modalData["submission-time"])}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <h3 className="font-semibold italic text-sm mb-0">
+                        Attachments:
+                      </h3>
+
+                      {Object.keys(attachments).length > 0 ? (
+                        Object.keys(attachments).map((key, index) => (
+                          <div
+                            onClick={() => openAttachment(attachments[key])}
+                            key={index}
+                          >
+                            <Card
+                              className="hover:cursor-pointer"
+                              onClick={() => openAttachment(attachments[key])}
+                            >
+                              <CardBody className="flex flex-row items-start">
+                                <Image
+                                  src="/makeups/images/file-icon.svg"
+                                  width={24}
+                                  height={24}
+                                  alt=""
+                                />
+                                <p className="text-sm mx-6">
+                                  {key.replace("attachment-", "")}
+                                </p>
+                              </CardBody>
+                            </Card>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-base mb-0">No attachments</p>
+                      )}
+                    </div>
+
+                    {modalData.facRemarks && (
+                      <div className="flex items-center gap-4">
+                        <h3 className="font-semibold italic text-sm mb-0">
+                          Faculty Remarks:
+                        </h3>
+                        <p className="text-base mb-0">{modalData.facRemarks}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 <Divider className="my-4" />
 
@@ -416,35 +527,38 @@ const FacultyDashboard = ({ searchTerm }) => {
                     label="Remarks: "
                     placeholder="Please leave any remarks (optional) for the student here."
                     onValueChange={(value) => setFacRemarks(value)}
+                    value={facRemarks}
                   />
                 </div>
 
-                <ButtonGroup>
-                  <Button
-                    size="sm"
-                    radius="md"
-                    color="success"
-                    onClick={() => {
-                      onClose;
-                      updateRequestStatus(modalData._id, "Accepted");
-                    }}
-                    isDisabled={modalData.status === "Accepted"}
-                  >
-                    Approve
-                  </Button>
-                  <Button
-                    size="sm"
-                    radius="md"
-                    color="danger"
-                    onClick={() => {
-                      onClose;
-                      updateRequestStatus(modalData._id, "Denied");
-                    }}
-                    isDisabled={modalData.status === "Denied"}
-                  >
-                    Deny
-                  </Button>
-                </ButtonGroup>
+                {modalData && (
+                  <ButtonGroup>
+                    <Button
+                      size="sm"
+                      radius="md"
+                      color="success"
+                      onClick={() => {
+                        onClose();
+                        updateRequestStatus(modalData._id, "Accepted");
+                      }}
+                      isDisabled={isActionDisabled(modalData.status)}
+                    >
+                      Approve
+                    </Button>
+                    <Button
+                      size="sm"
+                      radius="md"
+                      color="danger"
+                      onClick={() => {
+                        onClose();
+                        updateRequestStatus(modalData._id, "Denied");
+                      }}
+                      isDisabled={isActionDisabled(modalData.status)}
+                    >
+                      Deny
+                    </Button>
+                  </ButtonGroup>
+                )}
               </ModalBody>
 
               <ModalFooter>

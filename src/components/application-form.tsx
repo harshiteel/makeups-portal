@@ -19,10 +19,12 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ user, email }) => {
   const [attachments, setAttachments] = useState<File[]>([]);
   const [errorMsg, setErrorMsg] = useState("");
   const [courseCodes, setCourseCodes] = useState<string[]>([]);
-  const [uploadProgress, setUploadProgress] = useState<Record<string, number>>(
-    {}
-  );
-  const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
+
+
+  const evalComponentOptions = [
+    { value: "Mid Semester Exam", label: "Mid Semester Exam" },
+    { value: "Comprehensive Exam", label: "Comprehensive Exam" }
+  ];
 
   const handleImageDrop = (acceptedFiles: File[]) => {
     const allowedTypes = [
@@ -94,8 +96,16 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ user, email }) => {
         body: formData,
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        if (response.status === 403) {
+          alert(data.message || "Submission deadline has passed for this course.");
+        } else if (response.status === 400) {
+          alert(data.message || "Invalid input provided. Please check your submission details.");
+        } else {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
       } else {
         alert(
           "Your Makeup request has been successfully submitted to your course IC. Please keep checking your dashboard for updates."
@@ -103,6 +113,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ user, email }) => {
         window.location.reload();
       }
     } catch (error) {
+      console.error("Submission error:", error);
       alert(
         "An error has occurred while submitting your request, please try again later. If the issue persists, contact TimeTable Division."
       );
@@ -111,7 +122,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ user, email }) => {
 
   const getCourseCodes = async () => {
     try {
-      const response = await fetch("/makeups/api/get-all-course-codes", {
+      const response = await fetch("/makeups/api/get-all-course-codes-application", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -125,7 +136,8 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ user, email }) => {
       const data = await response.json();
       setCourseCodes(data.courseCodes);
     } catch (error) {
-      alert("Error fetching course codes");
+      console.error("Error fetching course codes:", error);
+      alert("Error fetching available course codes. Please try again later.");
     }
   };
 
@@ -198,15 +210,14 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ user, email }) => {
               <label htmlFor="evalComponent" className="font-semibold">
                 Evaluative Component:
               </label>
-              <input
-                required
-                type="text"
-                id="evalComponent"
-                value={evalComponent}
-                onChange={(e) => setEvalComponent(e.target.value)}
-                className="w-full md:w-1/2 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-400"
-                placeholder="Eg: Quiz 1"
-              />
+              <div className="w-full md:w-1/2">
+                <Select
+                  options={evalComponentOptions}
+                  onChange={(option) => setEvalComponent(option?.value || "")}
+                  placeholder="Select component..."
+                  required
+                />
+              </div>
             </div>
 
             <div className="flex flex-col items-center space-y-4 md:space-y-0 md:space-x-4 mb-4">
