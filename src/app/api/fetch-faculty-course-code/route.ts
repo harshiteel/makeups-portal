@@ -1,27 +1,37 @@
 import { NextRequest, NextResponse } from "next/server";
-import clientPromise from "@/lib/mongodb";
+import { MongoClient } from "mongodb";
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { facultyEmail, session } = req.body as unknown as { facultyEmail: string; session: any };
+    const { email, session } = body;
 
-    //TODO: Fix this error. Currently session shows undefined.
-    // if (session) {
-    //   return NextResponse.json({ error: `Unauthorized` }, { status: 400 });
-    // }
-
-    const client = await clientPromise;
-    const db = client.db("ID-makeups");
-
-    const document = await db.collection("ics").findOne({ email: body.email });
-
-    if (!document) {
-      return NextResponse.json({ error: `Faculty not found with email: ${body.email}.`}, { status: 404 }); //shows undefined here
+    // Check if the user is authenticated
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    return NextResponse.json({ courseCode: document.courseCode }, { status: 200 });
+    const userEmail = email || session.user.email;
+
+    let client: MongoClient | null = null;
+
+    client = new MongoClient(process.env.MONGODB_URI!);
+    await client.connect();
+
+    const db = client.db("ID-makeups");
+    const ics = db.collection("ics");
+
+    const faculty = await ics.findOne({ email: userEmail });
+
+    if (!faculty) {
+      await client.close();
+      return NextResponse.json({ error: "Faculty not found" }, { status: 404 });
+    }
+
+    await client.close();
+    return NextResponse.json({ courseCode: faculty.courseCode });
   } catch (error) {
+    console.error("Error fetching faculty course code:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
