@@ -20,11 +20,19 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ user, email }) => {
   const [errorMsg, setErrorMsg] = useState("");
   const [courseCodes, setCourseCodes] = useState<string[]>([]);
 
+  // Get current month to determine available evaluative components
+  const currentMonth = new Date().getMonth() + 1; // getMonth() returns 0-11, so add 1
 
-  const evalComponentOptions = [
-    { value: "Mid Semester Exam", label: "Mid Semester Exam" },
-    { value: "Comprehensive Exam", label: "Comprehensive Exam" }
-  ];
+  const getEvalComponentOptions = () => {
+    if ([2, 3, 9, 10].includes(currentMonth)) { // February, March, September, October
+      return [{ value: "Mid Semester Exam", label: "Mid Semester Exam" }];
+    } else if ([4, 5, 11, 12].includes(currentMonth)) { // April, May, November, December
+      return [{ value: "Comprehensive Exam", label: "Comprehensive Exam" }];
+    }
+    return []; // Return an empty array for other months
+  };
+
+  const evalComponentOptions = getEvalComponentOptions();
 
   const handleImageDrop = (acceptedFiles: File[]) => {
     const allowedTypes = [

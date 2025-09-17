@@ -28,6 +28,7 @@ import Image from "next/image";
 import Select from "react-select";
 import FileIconSVG from "../../public/images/file-icon.svg";
 import DateRangeFilter from "@/components/date-filter";
+import AdminTempExtensions from '@/components/AdminTempExtensions';
 
 const AdminDashboard = ({ searchTerm }) => {
   const { data: session } = useSession();
@@ -46,6 +47,56 @@ const AdminDashboard = ({ searchTerm }) => {
   const [scrollBehavior, setScrollBehavior] = React.useState("inside");
   const [modalData, setModalData] = React.useState(null);
   const [attachments, setAttachments] = React.useState([]);
+
+  // Function to download makeup requests as CSV
+  const downloadCSV = () => {
+    if (filteredRequests.length === 0) {
+      alert("No data to export");
+      return;
+    }
+
+    // Define CSV headers
+    const headers = [
+      "Name",
+      "ID Number", 
+      "Email",
+      "Course Code",
+      "Evaluative Component",
+      "Reason",
+      "Submitted At",
+      "Status",
+      "Faculty Remarks"
+    ];
+
+    // Convert data to CSV format
+    const csvData = filteredRequests.map(request => [
+      request.name || "",
+      request.idNumber || "",
+      request.email || "",
+      request.courseCode || "",
+      request.evalComponent || "",
+      `"${(request.reason || "").replace(/"/g, '""')}"`, // Escape quotes in reason
+      formatDateTime(request["submission-time"]) || "",
+      request.status || "",
+      `"${(request.facRemarks || "").replace(/"/g, '""')}"` // Escape quotes in faculty remarks
+    ]);
+
+    // Combine headers and data
+    const csvContent = [headers, ...csvData]
+      .map(row => row.join(","))
+      .join("\n");
+
+    // Create and download the file
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `makeup-requests-${activeTab.toLowerCase().replace(/\s+/g, "-")}-${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   async function fetchData(status) {
     const response = await fetch("/makeups/api/fetch-requests", {
@@ -141,6 +192,7 @@ const AdminDashboard = ({ searchTerm }) => {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
+      timeZone: "Asia/Kolkata", // Convert to IST
     };
     return date.toLocaleString("en-GB", options);
   }
@@ -324,6 +376,18 @@ const AdminDashboard = ({ searchTerm }) => {
               courseCodeFilters.includes(option.value)
             )}
           />
+        </div>
+
+        <div className="w-full max-w-md flex justify-center">
+          <Button
+            color="primary"
+            variant="solid"
+            onClick={downloadCSV}
+            disabled={filteredRequests.length === 0}
+            className="mb-4"
+          >
+            📥 Download CSV ({filteredRequests.length} requests)
+          </Button>
         </div>
       </div>
 
@@ -568,6 +632,8 @@ const AdminDashboard = ({ searchTerm }) => {
           )}
         </ModalContent>
       </Modal>
+
+      <AdminTempExtensions session={session} />
     </div>
   );
 };

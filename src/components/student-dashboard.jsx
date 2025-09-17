@@ -40,6 +40,7 @@ const StudentDashboard = ({ searchTerm }) => {
 
   async function getMyRequests(st) {
     try {
+      console.log(`Fetching requests with status: ${st} for email: ${session?.user?.email}`);
       const response = await fetch("/makeups/api/fetch-my-requests", {
         method: "POST",
         headers: {
@@ -53,17 +54,26 @@ const StudentDashboard = ({ searchTerm }) => {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to fetch makeup requests");
+        console.error(`API response not OK: ${response.status} ${response.statusText}`);
+        throw new Error(`Failed to fetch makeup requests: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
-      const sortedData = data.sort((a, b) => {
-        const dateA = new Date(a["submission-time"]);
-        const dateB = new Date(b["submission-time"]);
-        return dateB - dateA;
-      });
-      setMakeupRequests(sortedData);
+      console.log(`Received ${data.length} makeup requests for status ${st}`);
+      
+      if (data && Array.isArray(data) && data.length > 0) {
+        const sortedData = data.sort((a, b) => {
+          const dateA = new Date(a["submission-time"] || 0);
+          const dateB = new Date(b["submission-time"] || 0);
+          return dateB - dateA;
+        });
+        setMakeupRequests(sortedData);
+      } else {
+        console.log(`No makeup requests found with status ${st}`);
+        setMakeupRequests([]); // Set empty array when no data
+      }
     } catch (error) {
+      console.error("Error fetching requests:", error);
       alert(
         "Failed to fetch your makeup requests, please try again. If issue persists, contact TimeTable Division."
       );
@@ -87,6 +97,7 @@ const StudentDashboard = ({ searchTerm }) => {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
+      timeZone: "Asia/Kolkata", // Convert to IST
     };
     return date.toLocaleString("en-GB", options);
   }
@@ -147,7 +158,7 @@ const StudentDashboard = ({ searchTerm }) => {
   return (
     <div className="flex flex-col items-center h-screen">
       <h1 className="font-semibold my-4 italic text-center">
-        {session?.user?.name}'s Student Dashboard
+        {session?.user?.name}&apos;s Student Dashboard
       </h1>
 
       <p className="italic font-sm">Click a row to open deatailed view</p>
@@ -241,7 +252,7 @@ const StudentDashboard = ({ searchTerm }) => {
           {(onClose) => (
             <>
               <ModalHeader className="flex flex-col gap-4">
-                {modalData.name}'s Makeup Request:
+                {modalData.name}&apos;s Makeup Request:
               </ModalHeader>
               <ModalBody>
                 <div className="flex flex-col gap-2">

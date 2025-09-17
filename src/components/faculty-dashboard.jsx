@@ -81,11 +81,14 @@ const FacultyDashboard = ({ searchTerm }) => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Cache-Control": "no-cache",
         },
+        cache: "no-store",
         body: JSON.stringify({
           courseCode: courseCode,
           status: status,
           session: session,
+          timestamp: Date.now(), // Cache buster
         }),
       });
 
@@ -171,7 +174,8 @@ const FacultyDashboard = ({ searchTerm }) => {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
-    };
+      timeZone: "Asia/Kolkata", // Convert to IST
+};
     return date.toLocaleString("en-GB", options);
   }
 
@@ -216,6 +220,56 @@ const FacultyDashboard = ({ searchTerm }) => {
     setDateFilter(filter);
     // Reset to first page when filter changes
     setPage(1);
+  };
+
+  // Function to download makeup requests as CSV
+  const downloadCSV = () => {
+    if (filteredRequests.length === 0) {
+      alert("No data to export");
+      return;
+    }
+
+    // Define CSV headers
+    const headers = [
+      "Name",
+      "ID Number", 
+      "Email",
+      "Course Code",
+      "Evaluative Component",
+      "Reason",
+      "Submitted At",
+      "Status",
+      "Faculty Remarks"
+    ];
+
+    // Convert data to CSV format
+    const csvData = filteredRequests.map(request => [
+      request.name || "",
+      request.idNumber || "",
+      request.email || "",
+      request.courseCode || "",
+      request.evalComponent || "",
+      `"${(request.reason || "").replace(/"/g, '""')}"`, // Escape quotes in reason
+      formatDateTime(request["submission-time"]) || "",
+      request.status || "",
+      `"${(request.facRemarks || "").replace(/"/g, '""')}"` // Escape quotes in faculty remarks
+    ]);
+
+    // Combine headers and data
+    const csvContent = [headers, ...csvData]
+      .map(row => row.join(","))
+      .join("\n");
+
+    // Create and download the file
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `faculty-makeup-requests-${activeTab.toLowerCase().replace(/\s+/g, "-")}-${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   // Pagination
@@ -300,6 +354,18 @@ const FacultyDashboard = ({ searchTerm }) => {
       {/* Date filter component */}
       <div className="w-full max-w-7xl px-4">
         <DateRangeFilter onFilterChange={handleDateFilterChange} />
+      </div>
+
+      {/* Download CSV button */}
+      <div className="w-full max-w-md flex justify-center my-4">
+        <Button
+          color="primary"
+          variant="solid"
+          onClick={downloadCSV}
+          disabled={filteredRequests.length === 0}
+        >
+          📥 Download CSV ({filteredRequests.length} requests)
+        </Button>
       </div>
       {filteredRequests.length > 0 && (
         <div className="text-sm text-gray-500 my-2">
