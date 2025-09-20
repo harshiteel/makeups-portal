@@ -6,7 +6,14 @@ declare global {
   var _mongoClientPromise: Promise<MongoClient> | undefined;
 }
 
-const uri = process.env.MONGODB_URI!;
+const uri = process.env.MONGODB_URI;
+
+if (!uri) {
+  throw new Error(
+    'Please define the MONGODB_URI environment variable inside .env.local or your environment variables'
+  );
+}
+
 const options = {};
 
 // Check the MongoClient instance to avoid creating multiple instances

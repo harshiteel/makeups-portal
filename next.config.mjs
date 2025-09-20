@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
     basePath: '/makeups',
+    output: 'standalone',
     env: {
         NEXTAUTH_URL: process.env.NEXTAUTH_URL
      },

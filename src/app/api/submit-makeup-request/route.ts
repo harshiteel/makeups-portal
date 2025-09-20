@@ -139,7 +139,7 @@ export async function POST(request: NextRequest) {
       const value = entry[1];
       console.log(`Processing form entry: ${key}`); // Debug point
 
-      if (value instanceof File) {
+      if (value && typeof value === 'object' && 'arrayBuffer' in value && 'type' in value) {
         const buffer = await value.arrayBuffer();
         const binData = new Binary(new Uint8Array(buffer));
         console.log(`File processed for key: ${key}`); // Debug point

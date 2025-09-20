@@ -1,0 +1,1 @@
+{"indexes":[{"v":{"$numberInt":"2"},"key":{"_id":{"$numberInt":"1"}},"name":"_id_"}],"uuid":"7153f6c29d9c4fcabbadb367bf50843c","collectionName":"temp-extensions","type":"collection"}
