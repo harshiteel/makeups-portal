@@ -1,42 +1,11 @@
-version: '3.8'
-
 services:
-  # Next.js App Service
   makeups-portal:
     build:
       context: .
     ports:
-      - "3030:3000"
+      - "3030:3030"
     env_file:
       - .env
     environment:
-      MONGODB_URI: "mongodb://mongo:27017/ID-makeups"
-      NEXTAUTH_URL: "http://localhost:3030/makeups/api/auth"
-      PORT: 3000
-    depends_on:
-      # THE FIX: This now waits for the mongo service to be 'healthy'
-      mongo:
-        condition: service_healthy
+      - PORT=3030
     restart: always
-
-  # MongoDB Service
-  mongo:
-    image: mongo:latest
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongo-data:/data/db
-      - ./mongo-seed:/mongo-seed
-      - ./mongo-init:/docker-entrypoint-initdb.d
-    # THE FIX: This block tells Docker how to check if MongoDB is ready
-    healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-    restart: always
-
-volumes:
-  mongo-data:
-
