@@ -2,8 +2,7 @@ services:
   makeups-portal:
     build:
       context: .
-    ports:
-      - "3030:3030"
+    network_mode: "host"
     env_file:
       - .env
     environment:
