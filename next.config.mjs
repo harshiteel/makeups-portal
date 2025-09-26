@@ -1,17 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
     basePath: '/makeups',
+    assetPrefix: '/makeups',
     output: 'standalone',
     env: {
         NEXTAUTH_URL: process.env.NEXTAUTH_URL
-     },
-    // rewrites: async () => {
-    //     return [{
-    //         source: '/api/:path*',
-    //         destination: '/makeups/api/:path*',
-    //     },
-    //     ];
-    // },
+    },
+    // Enable trailing slash for better reverse proxy compatibility
+    trailingSlash: true,
 };
   
 export default nextConfig;

@@ -6,5 +6,6 @@ services:
     env_file:
       - .env
     environment:
-      - PORT=3030
+      - PORT=3032
+      - HOSTNAME=0.0.0.0
     restart: always
